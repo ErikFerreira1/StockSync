@@ -1,37 +1,40 @@
 package com.erikferreira.stocksync.service;
 
+import com.erikferreira.stocksync.dto.inventory.InventoryResponseDTO;
 import com.erikferreira.stocksync.dto.product.ProductInsertDTO;
 import com.erikferreira.stocksync.dto.product.ProductResponseDTO;
 import com.erikferreira.stocksync.dto.product.ProductUpdateDTO;
-import com.erikferreira.stocksync.entity.Inventory;
 import com.erikferreira.stocksync.entity.Product;
-import com.erikferreira.stocksync.repository.InventoryRepository;
 import com.erikferreira.stocksync.repository.ProductRepository;
 import com.erikferreira.stocksync.service.exceptions.DatabaseException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Validated
 public class ProductService {
 
     private final ProductRepository repository;
-    private final InventoryRepository inventoryRepository;
+    private final InventoryService inventoryService;
 
     @Transactional(readOnly = true)
     public Page<ProductResponseDTO> findAllPaged(Pageable pageable) {
         Page<Product> list = repository.findAll(pageable);
 
-        return list.map(product -> toResponseDTO(product, product.getInventory()));
+        return list.map(product -> toResponseDTO(product,
+                product.getInventory() != null ? product.getInventory().getAvailableQuantity() : 0));
     }
 
     @Transactional(readOnly = true)
@@ -39,39 +42,35 @@ public class ProductService {
         Product entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Entity not found with id " + id));
 
-        return toResponseDTO(entity, entity.getInventory());
+        return toResponseDTO(entity, entity.getInventory() != null ? entity.getInventory().getAvailableQuantity() : 0);
     }
 
     @Transactional
-    public ProductResponseDTO insert(ProductInsertDTO dto) {
+    public ProductResponseDTO insert(@Valid ProductInsertDTO dto) {
         Product entity = new Product();
         copyInsertDtoToEntity(dto, entity);
         repository.save(entity);
 
-        Inventory inventory = Inventory.builder()
-                .product(entity)
-                .availableQuantity(dto.initialQuantity())
-                .minQuantity(dto.minQuantity())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        InventoryResponseDTO inventory = inventoryService.createInitialInventory(
+                entity,
+                dto.initialQuantity(),
+                dto.minQuantity()
+        );
         
-        inventoryRepository.save(inventory);
-        
-        return toResponseDTO(entity, inventory);
+        return toResponseDTO(entity, inventory.availableQuantity());
     }
 
     @Transactional
-    public ProductResponseDTO update(Long id, ProductUpdateDTO dto) {
+    public ProductResponseDTO update(Long id, @Valid ProductUpdateDTO dto) {
         Product entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
 
-        Inventory inventory = inventoryRepository.findByProductId(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product: " + id));
+        InventoryResponseDTO inventory = inventoryService.findByProduct(id);
 
         copyUpdateDtoToEntity(dto, entity);
         entity = repository.save(entity);
 
-        return toResponseDTO(entity, inventory);
+        return toResponseDTO(entity, inventory.availableQuantity());
     }
 
     @Transactional
@@ -99,6 +98,8 @@ public class ProductService {
         setActive(id, true);
     }
 
+    // helpers
+
     private void copyInsertDtoToEntity(ProductInsertDTO dto, Product entity) {
         entity.setSku(dto.sku());
         entity.setName(dto.name());
@@ -115,8 +116,7 @@ public class ProductService {
         entity.setActive(dto.active());
     }
 
-    private ProductResponseDTO toResponseDTO(Product product, Inventory inventory) {
-        Integer quantity = inventory != null ? inventory.getAvailableQuantity() : null;
+    private ProductResponseDTO toResponseDTO(Product product, Integer availableQuantity) {
         return new ProductResponseDTO(
                 product.getId(),
                 product.getSku(),
@@ -124,7 +124,7 @@ public class ProductService {
                 product.getDescription(),
                 product.getBasePrice(),
                 product.isActive(),
-                quantity
+                availableQuantity
         );
     }
 

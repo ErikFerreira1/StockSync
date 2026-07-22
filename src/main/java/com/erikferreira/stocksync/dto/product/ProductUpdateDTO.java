@@ -7,11 +7,14 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record ProductUpdateDTO(
-        @NotBlank String name,
+        @NotBlank(message = "Name required ")
+        String name,
 
         String description,
 
-        @NotNull @DecimalMin("0.0") BigDecimal basePrice,
+        @NotNull(message = "Field cannot be null")
+        @DecimalMin("0.0")
+        BigDecimal basePrice,
 
         boolean active) {
 }

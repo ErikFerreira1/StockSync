@@ -11,6 +11,6 @@ public record ProductResponseDTO(
         String description,
         BigDecimal basePrice,
         boolean active,
-        Integer availableQuantity // vem do Inventory, "achatado" pra facilitar o consumo
+        Integer availableQuantity // It comes from the Inventory, "flattened" to make it easier to consume.
 ) {
 }
