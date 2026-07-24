@@ -36,7 +36,7 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
-    @OneToOne(mappedBy = "product")
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Inventory inventory;
 
     @Builder.Default

@@ -33,6 +33,13 @@ public class InventoryService {
     }
 
     @Transactional(readOnly = true)
+    public List<InventoryResponseDTO> findProductsBelowMinimum() {
+        return repository.findAllBelowMinimum().stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Integer getAvailableQuantity(Long productId) {
         Inventory inventory = findInventoryOrThrow(productId);
 
@@ -98,13 +105,6 @@ public class InventoryService {
         repository.save(inventory);
 
         return toResponseDTO(inventory);
-    }
-
-    @Transactional(readOnly = true)
-    public List<InventoryResponseDTO> findProductsBelowMinimum() {
-        return repository.findAllBelowMinimum().stream()
-                .map(this::toResponseDTO)
-                .toList();
     }
 
     // helpers

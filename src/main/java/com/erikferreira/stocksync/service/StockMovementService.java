@@ -1,5 +1,7 @@
 package com.erikferreira.stocksync.service;
 
+import com.erikferreira.stocksync.dto.inventory.AdjustStockDTO;
+import com.erikferreira.stocksync.dto.inventory.StockRequestDTO;
 import com.erikferreira.stocksync.dto.stockmovement.StockMovementInsertDTO;
 import com.erikferreira.stocksync.dto.stockmovement.StockMovementResponseDTO;
 import com.erikferreira.stocksync.entity.Product;
@@ -9,24 +11,28 @@ import com.erikferreira.stocksync.repository.ProductRepository;
 import com.erikferreira.stocksync.repository.StockMovementRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidMovementOriginException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Validated
 public class StockMovementService {
 
     private final StockMovementRepository repository;
     private final ProductRepository productRepository;
+    private final InventoryService inventoryService;
 
 
     @Transactional
-    public StockMovementResponseDTO registerMovement(StockMovementInsertDTO dto) {
+    public StockMovementResponseDTO registerMovement(@Valid StockMovementInsertDTO dto) {
         validateOrigin(dto);
 
         Product product = productRepository.findById(dto.productId())
@@ -42,7 +48,10 @@ public class StockMovementService {
                 .occurredAt(LocalDateTime.now())
                 .build();
 
-        return toResponseDTO(repository.save(stockMovement));
+        repository.save(stockMovement);
+        applyToInventory(dto);
+
+        return toResponseDTO(stockMovement);
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +81,19 @@ public class StockMovementService {
                             "Movement type " + dto.type() + " requires originType=RECONCILIATION");
                 }
             }
+        }
+    }
+
+    private void applyToInventory(StockMovementInsertDTO dto) {
+        switch (dto.type()) {
+            case SALE, MANUAL_DECREASE ->
+                    inventoryService.decreaseStock(new StockRequestDTO(dto.productId(), dto.quantity()));
+
+            case CANCELLATION, REFUND, MANUAL_INCREASE ->
+                    inventoryService.increaseStock(new StockRequestDTO(dto.productId(), dto.quantity()));
+
+            case RECONCILIATION_CORRECTION ->
+                    inventoryService.adjustStock(new AdjustStockDTO(dto.productId(), dto.quantity()));
         }
     }
 

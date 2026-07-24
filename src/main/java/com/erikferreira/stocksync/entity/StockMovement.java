@@ -24,10 +24,6 @@ public class StockMovement {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id")
-    private Order order;
-
     @Column(name = "occurred_at", nullable = false)
     private LocalDateTime occurredAt;
 
@@ -39,7 +35,7 @@ public class StockMovement {
     private MovementType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "origin_type", nullable = false, length = 50)
+    @Column(name = "origin_type", length = 50)
     private OriginType originType;
 
     @Column(name = "origin_id")

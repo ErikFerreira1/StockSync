@@ -5,18 +5,28 @@ import com.erikferreira.stocksync.service.exceptions.InsufficientStockException;
 import com.erikferreira.stocksync.service.exceptions.InvalidMovementOriginException;
 import com.erikferreira.stocksync.service.exceptions.InvalidQuantityException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
@@ -63,13 +73,47 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         Map<String, Object> response = createErrorResponse(
                 "Database error",
                 ex.getMessage(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
+                HttpStatus.CONFLICT.value()
         );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+
+        List<Map<String, String>> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> Map.of(
+                        "field", fe.getField(),
+                        "message", fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value"
+                ))
+                .toList();
+
+        Map<String, Object> response = createErrorResponse(
+                "Validation error",
+                "One or more fields are invalid",
+                HttpStatus.BAD_REQUEST.value()
+        );
+        response.put("errors", fieldErrors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+
+        Map<String, Object> response = createErrorResponse(
+                "Data integrity violation",
+                "The operation violates a database constraint (duplicate value or related records)",
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        log.error("Unexpected error", ex);
         Map<String, Object> response = createErrorResponse(
                 "Internal server error",
                 "An unexpected error occurred",
