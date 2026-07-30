@@ -89,13 +89,13 @@ public class ProductService {
     }
 
     @Transactional
-    public void deactivate(Long id) {
-        setActive(id, false);
+    public void activate(Long id) {
+        setActive(id, true);
     }
 
     @Transactional
-    public void activate(Long id) {
-        setActive(id, true);
+    public void deactivate(Long id) {
+        setActive(id, false);
     }
 
     // helpers
@@ -113,7 +113,6 @@ public class ProductService {
         entity.setName(dto.name());
         entity.setDescription(dto.description());
         entity.setBasePrice(dto.basePrice());
-        entity.setActive(dto.active());
     }
 
     private ProductResponseDTO toResponseDTO(Product product, Integer availableQuantity) {

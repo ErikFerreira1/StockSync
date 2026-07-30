@@ -59,15 +59,15 @@ public class InventoryService {
     }
 
     @Transactional
-    public InventoryResponseDTO increaseStock(@Valid StockRequestDTO request) {
+    public void increaseStock(@Valid StockRequestDTO request) {
         Inventory inventory = findInventoryOrThrow(request.productId());
         int newQuantity = inventory.getAvailableQuantity() + request.quantity();
 
-        return applyNewQuantity(inventory, newQuantity, "increase");
+        applyNewQuantity(inventory, newQuantity, "increase");
     }
 
     @Transactional
-    public InventoryResponseDTO decreaseStock(@Valid StockRequestDTO request) {
+    public void decreaseStock(@Valid StockRequestDTO request) {
         Inventory inventory = findInventoryOrThrow(request.productId());
 
         if (inventory.getAvailableQuantity() < request.quantity()) {
@@ -79,21 +79,22 @@ public class InventoryService {
 
         int newQuantity = inventory.getAvailableQuantity() - request.quantity();
 
-        return applyNewQuantity(inventory, newQuantity, "decrease");
+        applyNewQuantity(inventory, newQuantity, "decrease");
     }
 
     @Transactional
-    public InventoryResponseDTO adjustStock(@Valid AdjustStockDTO request) {
+    public void adjustStock(@Valid AdjustStockDTO request) {
         Inventory inventory = findInventoryOrThrow(request.productId());
         Integer currentQuantity = inventory.getAvailableQuantity();
         Integer newQuantity = request.quantity();
 
         if (currentQuantity.equals(newQuantity)) {
             log.info("No adjustment needed for product {}: current stock = {}", request.productId(), currentQuantity);
-            return toResponseDTO(inventory);
+            toResponseDTO(inventory);
+            return;
         }
 
-        return applyNewQuantity(inventory, newQuantity, "adjust");
+        applyNewQuantity(inventory, newQuantity, "adjust");
     }
 
     @Transactional

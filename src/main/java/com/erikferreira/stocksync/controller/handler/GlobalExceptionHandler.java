@@ -1,10 +1,6 @@
 package com.erikferreira.stocksync.controller.handler;
 
-import com.erikferreira.stocksync.service.exceptions.DatabaseException;
-import com.erikferreira.stocksync.service.exceptions.InsufficientStockException;
-import com.erikferreira.stocksync.service.exceptions.InvalidMovementOriginException;
-import com.erikferreira.stocksync.service.exceptions.InvalidQuantityException;
-import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
+import com.erikferreira.stocksync.service.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -62,6 +58,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleInsufficientStockException(InsufficientStockException ex) {
         Map<String, Object> response = createErrorResponse(
                 "Insufficient stock",
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(InvalidOrderStatusException.class)
+    public ResponseEntity<Map<String, Object>> InvalidOrderStatusException(InsufficientStockException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Invalid OrderStatus",
                 ex.getMessage(),
                 HttpStatus.CONFLICT.value()
         );

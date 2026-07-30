@@ -14,7 +14,6 @@ public record ProductUpdateDTO(
 
         @NotNull(message = "Field cannot be null")
         @DecimalMin("0.0")
-        BigDecimal basePrice,
-
-        boolean active) {
+        BigDecimal basePrice
+        ) {
 }

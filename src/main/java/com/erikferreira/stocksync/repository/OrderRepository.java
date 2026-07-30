@@ -2,12 +2,26 @@ package com.erikferreira.stocksync.repository;
 
 import com.erikferreira.stocksync.entity.Order;
 import com.erikferreira.stocksync.entity.SalesChannel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    @EntityGraph(attributePaths = {"salesChannel"})
+    @Override
+    Page<Order> findAll(Pageable pageable);
+
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.product WHERE o IN :orders")
+    List<Order> fetchItemsForOrders(List<Order> orders);
+
     Optional<Order> findBySalesChannelAndExternalOrderId(SalesChannel salesChannel, String externalOrderId);
+
 }

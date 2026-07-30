@@ -1,6 +1,5 @@
 package com.erikferreira.stocksync.dto.product;
 
-import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 

@@ -23,16 +23,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<Page<ProductResponseDTO>> findAllPaged(Pageable pageable) {
-        Page<ProductResponseDTO> dto = service.findAllPaged(pageable);
-
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(service.findAllPaged(pageable));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> findById(@PathVariable Long id) {
-        ProductResponseDTO dto = service.findById(id);
-
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(service.findById(id));
     }
 
     @PostMapping
@@ -50,9 +46,7 @@ public class ProductController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> update(@PathVariable Long id, @Valid @RequestBody ProductUpdateDTO updateDTO) {
-        ProductResponseDTO dto = service.update(id, updateDTO);
-
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(service.update(id, updateDTO));
     }
 
 

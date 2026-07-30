@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SalesChannelRepository extends JpaRepository<SalesChannel, Long> {
+    boolean existsByName(String name);
+    boolean existsByNameAndIdNot(String name, Long id);
 }
