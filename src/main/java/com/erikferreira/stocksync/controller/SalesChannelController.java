@@ -1,7 +1,7 @@
 package com.erikferreira.stocksync.controller;
 
-import com.erikferreira.stocksync.dto.saleschannel.SalesChannelRequestDTO;
-import com.erikferreira.stocksync.dto.saleschannel.SalesChannelResponseDTO;
+import com.erikferreira.stocksync.dto.salesChannel.SalesChannelRequestDTO;
+import com.erikferreira.stocksync.dto.salesChannel.SalesChannelResponseDTO;
 import com.erikferreira.stocksync.service.SalesChannelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

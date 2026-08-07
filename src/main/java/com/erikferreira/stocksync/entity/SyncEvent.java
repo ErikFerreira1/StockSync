@@ -43,5 +43,5 @@ public class SyncEvent {
 
     @Builder.Default
     @Column(nullable = false)
-    private Integer attempts = 0;
+    private Integer attempts = 1;
 }

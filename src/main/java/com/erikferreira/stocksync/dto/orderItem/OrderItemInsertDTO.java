@@ -1,4 +1,4 @@
-package com.erikferreira.stocksync.dto.orderitem;
+package com.erikferreira.stocksync.dto.orderItem;
 
 import jakarta.validation.constraints.*;
 

@@ -1,5 +1,6 @@
 package com.erikferreira.stocksync.controller.handler;
 
+import com.erikferreira.stocksync.config.security.exceptions.CryptoException;
 import com.erikferreira.stocksync.service.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+    @ExceptionHandler(InvalidSyncEventException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidSyncEventException(InvalidSyncEventException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Invalid sync event",
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<Map<String, Object>> handleInsufficientStockException(InsufficientStockException ex) {
@@ -65,7 +75,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(InvalidOrderStatusException.class)
-    public ResponseEntity<Map<String, Object>> InvalidOrderStatusException(InsufficientStockException ex) {
+    public ResponseEntity<Map<String, Object>> InvalidOrderStatusException(InvalidOrderStatusException ex) {
         Map<String, Object> response = createErrorResponse(
                 "Invalid OrderStatus",
                 ex.getMessage(),
@@ -82,6 +92,41 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.CONFLICT.value()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+
+        Map<String, Object> response = createErrorResponse(
+                "Data integrity violation",
+                "The operation violates a database constraint (duplicate value or related records)",
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(CryptoException.class)
+    public ResponseEntity<Map<String, Object>> handleCryptoException(CryptoException ex) {
+        log.error("Crypto operation failed", ex);
+
+        Map<String, Object> response = createErrorResponse(
+                "Internal server error",
+                "An unexpected error occurred while processing sensitive data",
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        log.error("Unexpected error", ex);
+        Map<String, Object> response = createErrorResponse(
+                "Internal server error",
+                "An unexpected error occurred",
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     @Override
@@ -103,29 +148,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         response.put("errors", fieldErrors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
-
-        Map<String, Object> response = createErrorResponse(
-                "Data integrity violation",
-                "The operation violates a database constraint (duplicate value or related records)",
-                HttpStatus.CONFLICT.value()
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        log.error("Unexpected error", ex);
-        Map<String, Object> response = createErrorResponse(
-                "Internal server error",
-                "An unexpected error occurred",
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     private Map<String, Object> createErrorResponse(String title, String message, int status) {

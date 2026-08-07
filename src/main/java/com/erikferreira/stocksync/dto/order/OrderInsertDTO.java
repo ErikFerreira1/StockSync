@@ -1,7 +1,6 @@
 package com.erikferreira.stocksync.dto.order;
 
-import com.erikferreira.stocksync.dto.orderitem.OrderItemInsertDTO;
-import com.erikferreira.stocksync.entity.enums.OrderStatus;
+import com.erikferreira.stocksync.dto.orderItem.OrderItemInsertDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 

@@ -2,15 +2,13 @@ package com.erikferreira.stocksync.service;
 
 import com.erikferreira.stocksync.dto.inventory.AdjustStockDTO;
 import com.erikferreira.stocksync.dto.inventory.StockRequestDTO;
-import com.erikferreira.stocksync.dto.stockmovement.StockMovementInsertDTO;
-import com.erikferreira.stocksync.dto.stockmovement.StockMovementResponseDTO;
+import com.erikferreira.stocksync.dto.stockMovement.StockMovementInsertDTO;
+import com.erikferreira.stocksync.dto.stockMovement.StockMovementResponseDTO;
 import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.StockMovement;
 import com.erikferreira.stocksync.entity.enums.OriginType;
-import com.erikferreira.stocksync.repository.ProductRepository;
 import com.erikferreira.stocksync.repository.StockMovementRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidMovementOriginException;
-import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,7 +25,7 @@ import java.time.LocalDateTime;
 public class StockMovementService {
 
     private final StockMovementRepository repository;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
     private final InventoryService inventoryService;
 
 
@@ -35,8 +33,7 @@ public class StockMovementService {
     public StockMovementResponseDTO registerMovement(@Valid StockMovementInsertDTO dto) {
         validateOrigin(dto);
 
-        Product product = productRepository.findById(dto.productId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        Product product = productService.getProductEntityById(dto.productId());
 
         StockMovement stockMovement = StockMovement.builder()
                 .product(product)

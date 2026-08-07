@@ -1,7 +1,7 @@
 package com.erikferreira.stocksync.controller;
 
-import com.erikferreira.stocksync.dto.stockmovement.StockMovementInsertDTO;
-import com.erikferreira.stocksync.dto.stockmovement.StockMovementResponseDTO;
+import com.erikferreira.stocksync.dto.stockMovement.StockMovementInsertDTO;
+import com.erikferreira.stocksync.dto.stockMovement.StockMovementResponseDTO;
 import com.erikferreira.stocksync.service.StockMovementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

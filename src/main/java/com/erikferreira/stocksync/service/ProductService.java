@@ -45,6 +45,12 @@ public class ProductService {
         return toResponseDTO(entity, entity.getInventory() != null ? entity.getInventory().getAvailableQuantity() : 0);
     }
 
+    @Transactional(readOnly = true)
+    public Product getProductEntityById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+    }
+
     @Transactional
     public ProductResponseDTO insert(@Valid ProductInsertDTO dto) {
         Product entity = new Product();

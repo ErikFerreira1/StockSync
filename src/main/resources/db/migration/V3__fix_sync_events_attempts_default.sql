@@ -1,0 +1,1 @@
+ALTER TABLE sync_events ALTER COLUMN attempts SET DEFAULT 1;

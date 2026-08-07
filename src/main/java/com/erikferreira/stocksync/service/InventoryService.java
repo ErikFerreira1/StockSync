@@ -115,7 +115,7 @@ public class InventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product: " + productId));
     }
 
-    private InventoryResponseDTO applyNewQuantity(Inventory inventory, int newQuantity, String operation) {
+    private void applyNewQuantity(Inventory inventory, int newQuantity, String operation) {
         int previousQuantity = inventory.getAvailableQuantity();
 
         inventory.setAvailableQuantity(newQuantity);
@@ -130,7 +130,7 @@ public class InventoryService {
                     inventory.getProduct().getId(), newQuantity, inventory.getMinQuantity());
         }
 
-        return toResponseDTO(inventory);
+        toResponseDTO(inventory);
     }
 
     private InventoryResponseDTO toResponseDTO(Inventory inventory) {

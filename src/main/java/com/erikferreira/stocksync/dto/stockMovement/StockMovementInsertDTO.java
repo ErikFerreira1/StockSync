@@ -1,4 +1,4 @@
-package com.erikferreira.stocksync.dto.stockmovement;
+package com.erikferreira.stocksync.dto.stockMovement;
 
 import com.erikferreira.stocksync.entity.enums.MovementType;
 import com.erikferreira.stocksync.entity.enums.OriginType;

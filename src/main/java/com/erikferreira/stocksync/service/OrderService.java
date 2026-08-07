@@ -2,9 +2,9 @@ package com.erikferreira.stocksync.service;
 
 import com.erikferreira.stocksync.dto.order.OrderInsertDTO;
 import com.erikferreira.stocksync.dto.order.OrderResponseDTO;
-import com.erikferreira.stocksync.dto.orderitem.OrderItemInsertDTO;
-import com.erikferreira.stocksync.dto.orderitem.OrderItemResponseDTO;
-import com.erikferreira.stocksync.dto.stockmovement.StockMovementInsertDTO;
+import com.erikferreira.stocksync.dto.orderItem.OrderItemInsertDTO;
+import com.erikferreira.stocksync.dto.orderItem.OrderItemResponseDTO;
+import com.erikferreira.stocksync.dto.stockMovement.StockMovementInsertDTO;
 import com.erikferreira.stocksync.entity.Order;
 import com.erikferreira.stocksync.entity.OrderItem;
 import com.erikferreira.stocksync.entity.Product;
@@ -14,8 +14,6 @@ import com.erikferreira.stocksync.entity.enums.OrderStatus;
 import com.erikferreira.stocksync.entity.enums.OriginType;
 import com.erikferreira.stocksync.repository.OrderItemRepository;
 import com.erikferreira.stocksync.repository.OrderRepository;
-import com.erikferreira.stocksync.repository.ProductRepository;
-import com.erikferreira.stocksync.repository.SalesChannelRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidOrderStatusException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
@@ -37,9 +35,9 @@ import java.util.List;
 public class OrderService {
 
     private final OrderItemRepository orderItemRepository;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
     private final OrderRepository repository;
-    private final SalesChannelRepository salesChannelRepository;
+    private final SalesChannelService salesChannelService;
     private final StockMovementService stockMovementService;
 
     @Transactional(readOnly = true)
@@ -63,10 +61,15 @@ public class OrderService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Order getOrderEntityById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+    }
+
     @Transactional
     public OrderResponseDTO insert(@Valid OrderInsertDTO dto) {
-        SalesChannel channel = salesChannelRepository.findById(dto.salesChannelId())
-                .orElseThrow(() -> new ResourceNotFoundException("SalesChannel not found with id"));
+        SalesChannel channel = salesChannelService.getSalesChannelEntityById(dto.salesChannelId());
 
         Order order = new Order();
         copyDtoToEntity(dto, order, channel);
@@ -77,8 +80,7 @@ public class OrderService {
             Integer quantity = item.quantity();
             BigDecimal unitPrice = item.unitPrice();
 
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("ProductId not found with id " + productId));
+            Product product = productService.getProductEntityById(productId);
 
             StockMovementInsertDTO stockMovementInsertDTO = new StockMovementInsertDTO(
                     productId,

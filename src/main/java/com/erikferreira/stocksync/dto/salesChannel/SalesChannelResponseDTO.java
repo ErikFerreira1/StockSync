@@ -1,4 +1,4 @@
-package com.erikferreira.stocksync.dto.saleschannel;
+package com.erikferreira.stocksync.dto.salesChannel;
 
 import com.erikferreira.stocksync.entity.enums.ChannelType;
 

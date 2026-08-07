@@ -1,8 +1,8 @@
 package com.erikferreira.stocksync.service;
 
 
-import com.erikferreira.stocksync.dto.saleschannel.SalesChannelResponseDTO;
-import com.erikferreira.stocksync.dto.saleschannel.SalesChannelRequestDTO;
+import com.erikferreira.stocksync.dto.salesChannel.SalesChannelResponseDTO;
+import com.erikferreira.stocksync.dto.salesChannel.SalesChannelRequestDTO;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.repository.SalesChannelRepository;
 import com.erikferreira.stocksync.service.exceptions.DatabaseException;
@@ -36,6 +36,12 @@ public class SalesChannelService {
                 .orElseThrow(() -> new ResourceNotFoundException("SalesChannel not found with id " + id));
 
         return toResponseDTO(entity);
+    }
+
+    @Transactional(readOnly = true)
+    public SalesChannel getSalesChannelEntityById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("SalesChannel not found with id " + id));
     }
 
     @Transactional
