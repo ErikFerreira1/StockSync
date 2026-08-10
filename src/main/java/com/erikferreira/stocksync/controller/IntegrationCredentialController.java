@@ -5,6 +5,7 @@ import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentia
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialTokenUpdateDTO;
 import com.erikferreira.stocksync.entity.IntegrationCredential;
 import com.erikferreira.stocksync.service.IntegrationCredentialService;
+import com.erikferreira.stocksync.service.TokenRefreshService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.net.URI;
 public class IntegrationCredentialController {
 
     private final IntegrationCredentialService service;
+    private final TokenRefreshService tokenRefreshService;
 
     @GetMapping("/{id}")
     public ResponseEntity<IntegrationCredentialResponseDTO> findById(@PathVariable Long id) {
@@ -28,6 +30,11 @@ public class IntegrationCredentialController {
     @GetMapping("/sales-channel/{salesChannelId}")
     public ResponseEntity<IntegrationCredentialResponseDTO> findBySalesChannelId(@PathVariable Long salesChannelId) {
         return ResponseEntity.ok(service.findBySalesChannelId(salesChannelId));
+    }
+
+    @GetMapping("/{salesChannelId}/valid-token")
+    public ResponseEntity<String> getValidAccessToken(@PathVariable Long salesChannelId) {
+        return ResponseEntity.ok(tokenRefreshService.getValidAccessToken(salesChannelId));
     }
 
     @PostMapping

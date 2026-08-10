@@ -106,6 +106,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(CredentialNotAuthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleCredentialNotAuthorizedException(CredentialNotAuthorizedException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Credential not authorized",
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(CryptoException.class)
     public ResponseEntity<Map<String, Object>> handleCryptoException(CryptoException ex) {
         log.error("Crypto operation failed", ex);
