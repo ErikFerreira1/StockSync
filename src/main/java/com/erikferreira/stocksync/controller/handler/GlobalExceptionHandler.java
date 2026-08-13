@@ -35,10 +35,43 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(MarketplaceListingNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketplaceListingNotFoundException(
+            MarketplaceListingNotFoundException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Marketplace listing not found",
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.value()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(MarketplaceIntegrationException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketplaceIntegrationException(
+            MarketplaceIntegrationException ex) {
+        log.error("Marketplace integration failed", ex);
+        Map<String, Object> response = createErrorResponse(
+                "Marketplace integration error",
+                ex.getMessage(),
+                HttpStatus.BAD_GATEWAY.value()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
+    }
+
     @ExceptionHandler(InvalidQuantityException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidQuantityException(InvalidQuantityException ex) {
         Map<String, Object> response = createErrorResponse(
                 "Invalid quantity",
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(InvalidSalesChannelException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidSalesChannelException(InvalidSalesChannelException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Invalid sales channel",
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST.value()
         );

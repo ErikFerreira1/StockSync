@@ -32,7 +32,7 @@ public class IntegrationCredentialController {
         return ResponseEntity.ok(service.findBySalesChannelId(salesChannelId));
     }
 
-    @GetMapping("/{salesChannelId}/valid-token")
+    @GetMapping("/{salesChannelId}/valid-token") // delete later
     public ResponseEntity<String> getValidAccessToken(@PathVariable Long salesChannelId) {
         return ResponseEntity.ok(tokenRefreshService.getValidAccessToken(salesChannelId));
     }
