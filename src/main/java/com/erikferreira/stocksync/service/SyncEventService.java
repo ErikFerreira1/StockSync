@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
@@ -33,37 +34,85 @@ public class SyncEventService {
 
     @Transactional(readOnly = true)
     public Page<SyncEventResponseDTO> findHistoryByProduct(Long productId, Pageable pageable) {
-        return repository.findByProductIdOrderByTimestampDesc(productId, pageable)
-                .map(this::toResponseDTO);
+        return repository.findByProductIdOrderByTimestampDesc(productId, pageable).map(this::toResponseDTO);
     }
 
     @Transactional(readOnly = true)
     public Page<SyncEventResponseDTO> findFailedEvents(Pageable pageable) {
-       return repository.findByStatus(SyncStatus.FAILURE, pageable)
-               .map(this::toResponseDTO);
+        return repository.findByStatus(SyncStatus.FAILURE, pageable).map(this::toResponseDTO);
     }
-
     @Transactional
     public SyncEventResponseDTO registerEvent(@Valid SyncEventInsertDTO dto) {
         validateStatusConsistency(dto);
 
-        Product product = productService.getProductEntityById(dto.productId());
         SalesChannel salesChannel = salesChannelService.getSalesChannelEntityById(dto.salesChannelId());
 
         Order order = dto.orderId() != null ? orderService.getOrderEntityById(dto.orderId()) : null;
+        Product product = dto.productId() != null ? productService.getProductEntityById(dto.productId()) : null;
 
-        SyncEvent entity = SyncEvent.builder()
-                .product(product)
-                .salesChannel(salesChannel)
-                .order(order)
-                .timestamp(LocalDateTime.now())
-                .status(dto.status())
-                .errorMessage(dto.errorMessage())
-                .build();
+
+        SyncEvent entity = SyncEvent.builder().product(product).salesChannel(salesChannel).order(order).timestamp(LocalDateTime.now()).status(dto.status()).errorMessage(dto.errorMessage()).externalOrderId(dto.externalOrderId()).build();
 
         repository.save(entity);
 
         return toResponseDTO(entity);
+    }
+
+    @Transactional
+    public void registerOrderSuccess(Long salesChannelId, Long orderId, String externalOrderId) {
+        registerEvent(new SyncEventInsertDTO(
+                null,
+                salesChannelId,
+                orderId,
+                externalOrderId,
+                SyncStatus.SUCCESS,
+                null));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registerOrderFailure(Long salesChannelId, String externalOrderId, RuntimeException exception) {
+        String errorMessage = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+
+        if (errorMessage.length() > 500) {
+            errorMessage = errorMessage.substring(0, 500);
+        }
+
+        registerEvent(new SyncEventInsertDTO(
+                null,
+                salesChannelId,
+                null,
+                externalOrderId,
+                SyncStatus.FAILURE,
+                errorMessage));
+    }
+
+    @Transactional
+    public void registerStockSuccess(Long productId, Long salesChannelId) {
+        registerEvent(new SyncEventInsertDTO(
+                productId,
+                salesChannelId,
+                null,
+                null,
+                SyncStatus.SUCCESS,
+                null));
+    }
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registerStockFailure(Long productId, Long salesChannelId, RuntimeException exception) {
+
+        String errorMessage = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+
+        if (errorMessage.length() > 500) {
+            errorMessage = errorMessage.substring(0, 500);
+        }
+
+        registerEvent(new SyncEventInsertDTO(
+                productId,
+                salesChannelId,
+                null,
+                null,
+                SyncStatus.FAILURE,
+                errorMessage
+        ));
     }
 
     // helpers
@@ -82,15 +131,8 @@ public class SyncEventService {
 
     private SyncEventResponseDTO toResponseDTO(SyncEvent syncEvent) {
         Long orderId = syncEvent.getOrder() != null ? syncEvent.getOrder().getId() : null;
-        return new SyncEventResponseDTO(
-                syncEvent.getId(),
-                syncEvent.getProduct().getId(),
-                syncEvent.getSalesChannel().getId(),
-                orderId,
-                syncEvent.getTimestamp(),
-                syncEvent.getStatus(),
-                syncEvent.getErrorMessage(),
-                syncEvent.getAttempts()
-        );
+        Long productId = syncEvent.getProduct() != null ? syncEvent.getProduct().getId() : null;
+
+        return new SyncEventResponseDTO(syncEvent.getId(), productId, syncEvent.getSalesChannel().getId(), orderId, syncEvent.getExternalOrderId(), syncEvent.getTimestamp(), syncEvent.getStatus(), syncEvent.getErrorMessage(), syncEvent.getAttempts());
     }
 }

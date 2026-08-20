@@ -6,12 +6,14 @@ import com.erikferreira.stocksync.dto.inventory.StockRequestDTO;
 import com.erikferreira.stocksync.dto.inventory.UpdateMinQuantityDTO;
 import com.erikferreira.stocksync.entity.Inventory;
 import com.erikferreira.stocksync.entity.Product;
+import com.erikferreira.stocksync.event.StockChangedEvent;
 import com.erikferreira.stocksync.repository.InventoryRepository;
 import com.erikferreira.stocksync.service.exceptions.InsufficientStockException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -26,6 +28,7 @@ import java.util.List;
 public class InventoryService {
 
     private final InventoryRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public InventoryResponseDTO findByProduct(Long productId) {
@@ -90,7 +93,6 @@ public class InventoryService {
 
         if (currentQuantity.equals(newQuantity)) {
             log.info("No adjustment needed for product {}: current stock = {}", request.productId(), currentQuantity);
-            toResponseDTO(inventory);
             return;
         }
 
@@ -121,6 +123,7 @@ public class InventoryService {
         inventory.setAvailableQuantity(newQuantity);
         inventory.setUpdatedAt(LocalDateTime.now());
         repository.save(inventory);
+        eventPublisher.publishEvent(new StockChangedEvent(inventory.getProduct().getId()));
 
         log.info("Stock {} for product {}: {} -> {}",
                 operation, inventory.getProduct().getId(), previousQuantity, newQuantity);
@@ -129,8 +132,6 @@ public class InventoryService {
             log.warn("Stock for product {} at or below minimum threshold: {} <= {}",
                     inventory.getProduct().getId(), newQuantity, inventory.getMinQuantity());
         }
-
-        toResponseDTO(inventory);
     }
 
     private InventoryResponseDTO toResponseDTO(Inventory inventory) {

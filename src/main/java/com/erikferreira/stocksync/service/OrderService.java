@@ -67,6 +67,11 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
     }
 
+    @Transactional(readOnly = true)
+    public boolean existsBySalesChannelIdAndExternalOrderId(Long salesChannelId, String externalOrderId) {
+        return repository.existsBySalesChannelIdAndExternalOrderId(salesChannelId, externalOrderId);
+    }
+
     @Transactional
     public OrderResponseDTO insert(@Valid OrderInsertDTO dto) {
         SalesChannel channel = salesChannelService.getSalesChannelEntityById(dto.salesChannelId());

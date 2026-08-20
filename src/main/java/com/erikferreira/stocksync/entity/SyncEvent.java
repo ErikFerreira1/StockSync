@@ -19,8 +19,8 @@ public class SyncEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "product_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "product_id")
     private Product product;
 
     @ManyToOne(optional = false)
@@ -30,6 +30,9 @@ public class SyncEvent {
     @ManyToOne
     @JoinColumn(name = "order_id")
     private Order order;
+
+    @Column(name = "external_order_id")
+    private String externalOrderId;
 
     @Column(name = "event_timestamp", nullable = false)
     private LocalDateTime timestamp;

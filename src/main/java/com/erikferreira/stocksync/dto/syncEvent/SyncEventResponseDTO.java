@@ -9,6 +9,7 @@ public record SyncEventResponseDTO(
         Long productId,
         Long salesChannelId,
         Long orderId,
+        String externalOrderId,
         LocalDateTime occurredAt,
         SyncStatus status,
         String errorMessage,

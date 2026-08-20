@@ -5,13 +5,15 @@ import jakarta.validation.constraints.*;
 
 public record SyncEventInsertDTO(
 
-        @NotNull(message = "productId is required")
         Long productId,
 
         @NotNull(message = "salesChannelId is required")
         Long salesChannelId,
 
         Long orderId,
+
+        @Size(max = 255, message = "externalOrderId must be at most 255 characters")
+        String externalOrderId,
 
         @NotNull(message = "status is required")
         SyncStatus status,

@@ -46,6 +46,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(MarketplaceListingAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleMarketplaceListingAlreadyExistsException(
+            MarketplaceListingAlreadyExistsException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Marketplace listing already exists",
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(MarketplaceIntegrationException.class)
     public ResponseEntity<Map<String, Object>> handleMarketplaceIntegrationException(
             MarketplaceIntegrationException ex) {
