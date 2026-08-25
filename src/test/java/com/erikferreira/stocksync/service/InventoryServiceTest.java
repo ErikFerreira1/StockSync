@@ -102,7 +102,7 @@ class InventoryServiceTest {
 
     @Test
     void increaseStockShouldSaveNewQuantityAndPublishEvent() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         service.increaseStock(new StockRequestDTO(1L, 5));
 
@@ -113,7 +113,7 @@ class InventoryServiceTest {
 
     @Test
     void decreaseStockShouldSaveNewQuantityAndPublishEvent() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         service.decreaseStock(new StockRequestDTO(1L, 5));
 
@@ -124,7 +124,7 @@ class InventoryServiceTest {
 
     @Test
     void decreaseStockShouldThrowWhenStockIsInsufficient() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         assertThatThrownBy(() -> service.decreaseStock(new StockRequestDTO(1L, 51)))
                 .isInstanceOf(InsufficientStockException.class)
@@ -135,8 +135,20 @@ class InventoryServiceTest {
     }
 
     @Test
+    void decreaseStockShouldThrowWhenInventoryDoesNotExist() {
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.decreaseStock(new StockRequestDTO(1L, 5)))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Inventory not found for product: 1");
+
+        verify(repository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void adjustStockShouldDoNothingWhenQuantityIsUnchanged() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         service.adjustStock(new AdjustStockDTO(1L, 50));
 
@@ -146,7 +158,7 @@ class InventoryServiceTest {
 
     @Test
     void adjustStockShouldSaveAndPublishWhenQuantityChanges() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         service.adjustStock(new AdjustStockDTO(1L, 25));
 
@@ -157,7 +169,7 @@ class InventoryServiceTest {
 
     @Test
     void updateMinQuantityShouldSaveAndReturnInventory() {
-        when(repository.findByProductId(1L)).thenReturn(Optional.of(inventory));
+        when(repository.findByProductIdForUpdate(1L)).thenReturn(Optional.of(inventory));
 
         InventoryResponseDTO result = service.updateMinQuantity(1L, new UpdateMinQuantityDTO(7));
 
@@ -165,6 +177,8 @@ class InventoryServiceTest {
         assertThat(result.minQuantity()).isEqualTo(7);
         verify(repository).save(inventory);
     }
+
+
 
     private void verifyStockChangedEvent(Long productId) {
         ArgumentCaptor<StockChangedEvent> captor = ArgumentCaptor.forClass(StockChangedEvent.class);

@@ -63,7 +63,7 @@ public class InventoryService {
 
     @Transactional
     public void increaseStock(@Valid StockRequestDTO request) {
-        Inventory inventory = findInventoryOrThrow(request.productId());
+        Inventory inventory = findInventoryForUpdateOrThrow(request.productId());
         int newQuantity = inventory.getAvailableQuantity() + request.quantity();
 
         applyNewQuantity(inventory, newQuantity, "increase");
@@ -71,7 +71,7 @@ public class InventoryService {
 
     @Transactional
     public void decreaseStock(@Valid StockRequestDTO request) {
-        Inventory inventory = findInventoryOrThrow(request.productId());
+        Inventory inventory = findInventoryForUpdateOrThrow(request.productId());
 
         if (inventory.getAvailableQuantity() < request.quantity()) {
             throw new InsufficientStockException(
@@ -87,7 +87,7 @@ public class InventoryService {
 
     @Transactional
     public void adjustStock(@Valid AdjustStockDTO request) {
-        Inventory inventory = findInventoryOrThrow(request.productId());
+        Inventory inventory = findInventoryForUpdateOrThrow(request.productId());
         Integer currentQuantity = inventory.getAvailableQuantity();
         Integer newQuantity = request.quantity();
 
@@ -101,7 +101,7 @@ public class InventoryService {
 
     @Transactional
     public InventoryResponseDTO updateMinQuantity(Long productId, @Valid UpdateMinQuantityDTO request) {
-        Inventory inventory = findInventoryOrThrow(productId);
+        Inventory inventory = findInventoryForUpdateOrThrow(productId);
         inventory.setMinQuantity(request.minQuantity());
         inventory.setUpdatedAt(Instant.now());
 
@@ -114,6 +114,11 @@ public class InventoryService {
 
     private Inventory findInventoryOrThrow(Long productId) {
         return repository.findByProductId(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product: " + productId));
+    }
+
+    private Inventory findInventoryForUpdateOrThrow(Long productId) {
+        return repository.findByProductIdForUpdate(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product: " + productId));
     }
 
