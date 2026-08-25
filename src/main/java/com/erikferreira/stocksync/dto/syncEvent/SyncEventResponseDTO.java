@@ -2,7 +2,7 @@ package com.erikferreira.stocksync.dto.syncEvent;
 
 import com.erikferreira.stocksync.entity.enums.SyncStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record SyncEventResponseDTO(
         Long id,
@@ -10,7 +10,7 @@ public record SyncEventResponseDTO(
         Long salesChannelId,
         Long orderId,
         String externalOrderId,
-        LocalDateTime occurredAt,
+        Instant occurredAt,
         SyncStatus status,
         String errorMessage,
         Integer attempts

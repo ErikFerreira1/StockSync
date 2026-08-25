@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +44,7 @@ class OrderSynchronizationProcessorTest {
 
     @Test
     void processOrderShouldMapItemsInsertOrderAndRegisterSuccess() {
-        LocalDateTime orderDate = LocalDateTime.now();
+        Instant orderDate = Instant.now();
         var externalOrder = new ExternalOrderDTO(
                 "EXT-1", orderDate, "paid",
                 List.of(new ExternalOrderItemDTO("MLB123", 2, new BigDecimal("15.00"))));
@@ -69,7 +69,7 @@ class OrderSynchronizationProcessorTest {
     @Test
     void processOrderShouldNotInsertWhenListingCannotBeResolved() {
         var externalOrder = new ExternalOrderDTO(
-                "EXT-1", LocalDateTime.now(), "paid",
+                "EXT-1", Instant.now(), "paid",
                 List.of(new ExternalOrderItemDTO("missing", 1, BigDecimal.TEN)));
         when(marketplaceListingService.getByListingIdAndSalesChannelId("missing", 2L))
                 .thenThrow(new RuntimeException("listing missing"));

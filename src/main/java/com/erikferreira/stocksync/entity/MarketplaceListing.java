@@ -4,7 +4,7 @@ import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "marketplace_listings", uniqueConstraints = @UniqueConstraint(name = "uk_marketplace_listings_channel_listing", columnNames = {"sales_channel_id", "listing_id"}))
@@ -38,5 +38,5 @@ public class MarketplaceListing {
     private ListingStatus status;
 
     @Column(name = "last_synced_at")
-    private LocalDateTime lastSyncedAt;
+    private Instant lastSyncedAt;
 }

@@ -4,7 +4,7 @@ import com.erikferreira.stocksync.entity.enums.SyncStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "sync_events")
@@ -35,7 +35,7 @@ public class SyncEvent {
     private String externalOrderId;
 
     @Column(name = "event_timestamp", nullable = false)
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

@@ -27,7 +27,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,7 +66,7 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Test
     void inventoryQueriesShouldFindByProductAndBelowMinimum() {
         inventoryRepository.save(Inventory.builder().product(product).availableQuantity(1).minQuantity(2)
-                .updatedAt(LocalDateTime.now()).build());
+                .updatedAt(Instant.now()).build());
 
         assertThat(inventoryRepository.findByProductId(product.getId())).isPresent();
         assertThat(inventoryRepository.findAllBelowMinimum())
@@ -77,7 +77,7 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Test
     void productPageShouldLoadAssociatedInventory() {
         inventoryRepository.save(Inventory.builder().product(product).availableQuantity(8).minQuantity(2)
-                .updatedAt(LocalDateTime.now()).build());
+                .updatedAt(Instant.now()).build());
         entityManager.flush();
         entityManager.clear();
 
@@ -90,12 +90,12 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Test
     void productFindAllShouldLoadInventoriesInSingleQuery() {
         inventoryRepository.save(Inventory.builder().product(product).availableQuantity(8).minQuantity(2)
-                .updatedAt(LocalDateTime.now()).build());
+                .updatedAt(Instant.now()).build());
         Product secondProduct = productRepository.save(Product.builder()
                 .sku("SKU-N1-" + System.nanoTime()).name("Second product")
                 .basePrice(BigDecimal.TEN).active(true).build());
         inventoryRepository.save(Inventory.builder().product(secondProduct).availableQuantity(4).minQuantity(1)
-                .updatedAt(LocalDateTime.now()).build());
+                .updatedAt(Instant.now()).build());
         entityManager.flush();
         entityManager.clear();
 
@@ -138,7 +138,7 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Test
     void orderQueriesShouldFetchItemsAndDetectExternalOrder() {
         Order order = orderRepository.save(Order.builder().salesChannel(channel).externalOrderId("EXT-1")
-                .orderDate(LocalDateTime.now()).status(OrderStatus.PENDING).build());
+                .orderDate(Instant.now()).status(OrderStatus.PENDING).build());
         orderItemRepository.save(OrderItem.builder().order(order).product(product).quantity(2)
                 .unitPrice(BigDecimal.TEN).build());
         entityManager.flush();
@@ -153,7 +153,7 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
 
     @Test
     void movementQueryShouldReturnOnlyRequestedProductHistory() {
-        movementRepository.save(StockMovement.builder().product(product).occurredAt(LocalDateTime.now())
+        movementRepository.save(StockMovement.builder().product(product).occurredAt(Instant.now())
                 .quantity(2).type(MovementType.MANUAL_INCREASE).build());
 
         assertThat(movementRepository.findByProductId(product.getId(), PageRequest.of(0, 10)).getContent())
@@ -163,10 +163,10 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Test
     void syncEventQueriesShouldFilterAndOrderEvents() {
         SyncEvent older = syncEventRepository.save(SyncEvent.builder().product(product).salesChannel(channel)
-                .timestamp(LocalDateTime.now().minusMinutes(1)).status(SyncStatus.FAILURE)
+                .timestamp(Instant.now().minusSeconds(60)).status(SyncStatus.FAILURE)
                 .errorMessage("old").build());
         SyncEvent newer = syncEventRepository.save(SyncEvent.builder().product(product).salesChannel(channel)
-                .timestamp(LocalDateTime.now()).status(SyncStatus.FAILURE).errorMessage("new").build());
+                .timestamp(Instant.now()).status(SyncStatus.FAILURE).errorMessage("new").build());
 
         var history = syncEventRepository.findByProductIdOrderByTimestampDesc(product.getId(), PageRequest.of(0, 10));
 

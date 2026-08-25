@@ -39,7 +39,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
@@ -150,7 +150,7 @@ class ControllerContractTest {
 
     @Test
     void inventoryControllerShouldReturnInventoryAndUpdateMinimum() throws Exception {
-        var response = new InventoryResponseDTO(2L, 1L, 10, 2, LocalDateTime.now());
+        var response = new InventoryResponseDTO(2L, 1L, 10, 2, Instant.now());
         when(inventoryService.findByProduct(1L)).thenReturn(response);
         when(inventoryService.updateMinQuantity(eq(1L), any())).thenReturn(response);
 
@@ -189,7 +189,7 @@ class ControllerContractTest {
     @Test
     void orderControllerShouldCancelOrder() throws Exception {
         when(orderService.cancelOrder(3L)).thenReturn(new OrderResponseDTO(
-                3L, 2L, "EXT-1", LocalDateTime.now(), OrderStatus.CANCELED, List.of()));
+                3L, 2L, "EXT-1", Instant.now(), OrderStatus.CANCELED, List.of()));
         mvc.perform(patch("/orders/3/cancel"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELED"));
@@ -205,7 +205,7 @@ class ControllerContractTest {
     @Test
     void stockMovementControllerShouldCreateMovement() throws Exception {
         when(stockMovementService.registerMovement(any())).thenReturn(new StockMovementResponseDTO(
-                4L, 1L, LocalDateTime.now(), 2, MovementType.MANUAL_INCREASE, null, null, "restock"));
+                4L, 1L, Instant.now(), 2, MovementType.MANUAL_INCREASE, null, null, "restock"));
         mvc.perform(post("/stock-movement").contentType("application/json").content("""
                         {"productId":1,"quantity":2,"type":"MANUAL_INCREASE","note":"restock"}
                         """))
@@ -216,7 +216,7 @@ class ControllerContractTest {
     @Test
     void syncEventControllerShouldCreateEvent() throws Exception {
         when(syncEventService.registerEvent(any())).thenReturn(new SyncEventResponseDTO(
-                5L, 1L, 2L, null, null, LocalDateTime.now(), SyncStatus.SUCCESS, null, 1));
+                5L, 1L, 2L, null, null, Instant.now(), SyncStatus.SUCCESS, null, 1));
         mvc.perform(post("/sync-events").contentType("application/json").content("""
                         {"productId":1,"salesChannelId":2,"status":"SUCCESS"}
                         """))

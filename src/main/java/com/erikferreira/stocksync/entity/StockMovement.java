@@ -5,7 +5,7 @@ import com.erikferreira.stocksync.entity.enums.OriginType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "stock_movements")
@@ -25,7 +25,7 @@ public class StockMovement {
     private Product product;
 
     @Column(name = "occurred_at", nullable = false)
-    private LocalDateTime occurredAt;
+    private Instant occurredAt;
 
     @Column(nullable = false)
     private Integer quantity;

@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +51,7 @@ public class SyncEventService {
         Product product = dto.productId() != null ? productService.getProductEntityById(dto.productId()) : null;
 
 
-        SyncEvent entity = SyncEvent.builder().product(product).salesChannel(salesChannel).order(order).timestamp(LocalDateTime.now()).status(dto.status()).errorMessage(dto.errorMessage()).externalOrderId(dto.externalOrderId()).build();
+        SyncEvent entity = SyncEvent.builder().product(product).salesChannel(salesChannel).order(order).timestamp(Instant.now()).status(dto.status()).errorMessage(dto.errorMessage()).externalOrderId(dto.externalOrderId()).build();
 
         repository.save(entity);
 

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -55,7 +55,7 @@ public class InventoryService {
                 .product(product)
                 .availableQuantity(initialQuantity)
                 .minQuantity(minQuantity)
-                .updatedAt(LocalDateTime.now())
+                .updatedAt(Instant.now())
                 .build();
 
         return toResponseDTO(repository.save(inventory));
@@ -103,7 +103,7 @@ public class InventoryService {
     public InventoryResponseDTO updateMinQuantity(Long productId, @Valid UpdateMinQuantityDTO request) {
         Inventory inventory = findInventoryOrThrow(productId);
         inventory.setMinQuantity(request.minQuantity());
-        inventory.setUpdatedAt(LocalDateTime.now());
+        inventory.setUpdatedAt(Instant.now());
 
         repository.save(inventory);
 
@@ -121,7 +121,7 @@ public class InventoryService {
         int previousQuantity = inventory.getAvailableQuantity();
 
         inventory.setAvailableQuantity(newQuantity);
-        inventory.setUpdatedAt(LocalDateTime.now());
+        inventory.setUpdatedAt(Instant.now());
         repository.save(inventory);
         eventPublisher.publishEvent(new StockChangedEvent(inventory.getProduct().getId()));
 
@@ -144,4 +144,3 @@ public class InventoryService {
         );
     }
 }
-

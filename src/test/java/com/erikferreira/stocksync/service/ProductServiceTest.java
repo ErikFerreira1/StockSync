@@ -23,7 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -172,7 +172,7 @@ class ProductServiceTest {
                 existingId,
                 20,
                 5,
-                LocalDateTime.now()
+                Instant.now()
         );
         when(repository.save(any(Product.class))).thenAnswer(invocation -> {
             Product savedProduct = invocation.getArgument(0);
@@ -352,7 +352,7 @@ class ProductServiceTest {
                 inventoryProduct.getId(),
                 availableQuantity,
                 1,
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 }

@@ -28,7 +28,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,7 +83,7 @@ class CoreWorkflowIntegrationTest extends PostgreSQLIntegrationTest {
         listingService.insert(new MarketplaceListingInsertDTO(
                 product.id(), channel.id(), listingId, null, ListingStatus.ACTIVE));
         when(marketplaceIntegrationPort.fetchNewOrders(channel.id())).thenReturn(List.of(
-                new ExternalOrderDTO(externalOrderId, LocalDateTime.now(), "paid", List.of(
+                new ExternalOrderDTO(externalOrderId, Instant.now(), "paid", List.of(
                         new ExternalOrderItemDTO(listingId, 2, new BigDecimal("25.00"))))));
 
         orderSynchronizationService.synchronizeOrders(channel.id());
@@ -107,7 +107,7 @@ class CoreWorkflowIntegrationTest extends PostgreSQLIntegrationTest {
         listingService.insert(new MarketplaceListingInsertDTO(
                 product.id(), channel.id(), listingId, null, ListingStatus.ACTIVE));
         when(marketplaceIntegrationPort.fetchNewOrders(channel.id())).thenReturn(List.of(
-                new ExternalOrderDTO(externalOrderId, LocalDateTime.now(), "paid", List.of(
+                new ExternalOrderDTO(externalOrderId, Instant.now(), "paid", List.of(
                         new ExternalOrderItemDTO(listingId, 2, BigDecimal.TEN)))));
 
         orderSynchronizationService.synchronizeOrders(channel.id());

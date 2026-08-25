@@ -3,12 +3,12 @@ package com.erikferreira.stocksync.dto.stockMovement;
 import com.erikferreira.stocksync.entity.enums.MovementType;
 import com.erikferreira.stocksync.entity.enums.OriginType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record StockMovementResponseDTO(
         Long id,
         Long productId,
-        LocalDateTime occurredAt,
+        Instant occurredAt,
         Integer quantity,
         MovementType type,
         OriginType originType,

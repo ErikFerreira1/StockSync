@@ -4,7 +4,7 @@ import com.erikferreira.stocksync.config.security.CryptoAttributeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "integration_credentials")
@@ -39,5 +39,5 @@ public class IntegrationCredential {
     private String refreshToken;
 
     @Column(name = "expires_at")
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 }

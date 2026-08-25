@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @RestController
 @RequiredArgsConstructor
@@ -62,7 +62,7 @@ public class MercadoLivreAuthController {
                 .retrieve()
                 .body(MercadoLivreTokenResponseDTO.class);
 
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(response.expiresIn());
+        Instant expiresAt = Instant.now().plusSeconds(response.expiresIn());
         credentialService.updateToken(salesChannelId,
                 new IntegrationCredentialTokenUpdateDTO(response.accessToken(), response.refreshToken(), expiresAt));
 

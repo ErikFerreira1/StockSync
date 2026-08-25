@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -131,6 +132,7 @@ class MercadoLivreAdapterTest {
 
         assertThat(result).singleElement().satisfies(order -> {
             assertThat(order.externalOrderId()).isEqualTo("12345");
+            assertThat(order.orderDate()).isEqualTo(Instant.parse("2026-08-21T15:00:00Z"));
             assertThat(order.items()).singleElement().satisfies(item -> {
                 assertThat(item.listingId()).isEqualTo("MLB123");
                 assertThat(item.quantity()).isEqualTo(2);

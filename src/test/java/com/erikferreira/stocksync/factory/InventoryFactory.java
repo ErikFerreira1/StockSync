@@ -3,7 +3,7 @@ package com.erikferreira.stocksync.factory;
 import com.erikferreira.stocksync.entity.Inventory;
 import com.erikferreira.stocksync.entity.Product;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class InventoryFactory {
 
@@ -12,7 +12,7 @@ public class InventoryFactory {
                 .product(product)
                 .availableQuantity(50)
                 .minQuantity(1)
-                .updatedAt(LocalDateTime.now())
+                .updatedAt(Instant.now())
                 .build();
     }
 }

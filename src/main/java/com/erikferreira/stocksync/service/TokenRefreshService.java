@@ -14,7 +14,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +33,7 @@ public class TokenRefreshService {
             );
         }
 
-        boolean verifyTimeToken = LocalDateTime.now().plusMinutes(1).isAfter(entity.getExpiresAt());
+        boolean verifyTimeToken = Instant.now().plusSeconds(60).isAfter(entity.getExpiresAt());
 
         if (!verifyTimeToken) {
             return entity.getAccessToken();
@@ -54,7 +54,7 @@ public class TokenRefreshService {
                 .body(MercadoLivreTokenResponseDTO.class);
 
 
-        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(response.expiresIn());
+        Instant expiresAt = Instant.now().plusSeconds(response.expiresIn());
 
         IntegrationCredentialTokenUpdateDTO credentialTokenDTO =
                 new IntegrationCredentialTokenUpdateDTO(

@@ -1,11 +1,11 @@
 package com.erikferreira.stocksync.integration.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record ExternalOrderDTO (
         String externalOrderId,
-        LocalDateTime orderDate,
+        Instant orderDate,
         String status,
         List<ExternalOrderItemDTO> items
 ) {}

@@ -26,7 +26,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,12 +40,18 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
-    @Mock private OrderItemRepository orderItemRepository;
-    @Mock private ProductService productService;
-    @Mock private OrderRepository repository;
-    @Mock private SalesChannelService salesChannelService;
-    @Mock private StockMovementService stockMovementService;
-    @InjectMocks private OrderService service;
+    @Mock
+    private OrderItemRepository orderItemRepository;
+    @Mock
+    private ProductService productService;
+    @Mock
+    private OrderRepository repository;
+    @Mock
+    private SalesChannelService salesChannelService;
+    @Mock
+    private StockMovementService stockMovementService;
+    @InjectMocks
+    private OrderService service;
 
     private Product product;
     private SalesChannel channel;
@@ -57,7 +63,7 @@ class OrderServiceTest {
         product = ProductFactory.createProduct();
         channel = SalesChannel.builder().id(2L).type(ChannelType.MERCADO_LIVRE).active(true).build();
         order = Order.builder().id(3L).salesChannel(channel).externalOrderId("ORDER-1")
-                .orderDate(LocalDateTime.now()).status(OrderStatus.PENDING).build();
+                .orderDate(Instant.now()).status(OrderStatus.PENDING).build();
         item = OrderItem.builder().id(4L).order(order).product(product).quantity(2)
                 .unitPrice(new BigDecimal("10.00")).build();
         order.setItems(List.of(item));

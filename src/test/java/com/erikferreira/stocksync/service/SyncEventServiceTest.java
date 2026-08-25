@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,7 +49,7 @@ class SyncEventServiceTest {
         channel = SalesChannel.builder().id(2L).build();
         order = Order.builder().id(3L).build();
         event = SyncEvent.builder().id(4L).product(product).salesChannel(channel).order(order)
-                .timestamp(LocalDateTime.now()).status(SyncStatus.SUCCESS).attempts(1).build();
+                .timestamp(Instant.now()).status(SyncStatus.SUCCESS).attempts(1).build();
     }
 
     @Test

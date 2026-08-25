@@ -4,7 +4,7 @@ import com.erikferreira.stocksync.entity.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +29,7 @@ public class Order {
     private String externalOrderId;
 
     @Column(name = "order_date", nullable = false)
-    private LocalDateTime orderDate;
+    private Instant orderDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

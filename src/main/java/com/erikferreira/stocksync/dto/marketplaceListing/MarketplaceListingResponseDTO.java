@@ -2,7 +2,7 @@ package com.erikferreira.stocksync.dto.marketplaceListing;
 
 import com.erikferreira.stocksync.entity.enums.ListingStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record MarketplaceListingResponseDTO(
         Long id,
@@ -11,6 +11,6 @@ public record MarketplaceListingResponseDTO(
         String listingId,
         String listingUrl,
         ListingStatus status,
-        LocalDateTime lastSyncedAt
+        Instant lastSyncedAt
 ) {
 }

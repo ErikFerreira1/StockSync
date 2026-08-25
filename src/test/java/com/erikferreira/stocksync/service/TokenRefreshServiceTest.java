@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,7 +60,7 @@ class TokenRefreshServiceTest {
 
     @Test
     void getValidAccessTokenShouldReturnCurrentTokenWhenNotNearExpiration() {
-        credential.setExpiresAt(LocalDateTime.now().plusHours(1));
+        credential.setExpiresAt(Instant.now().plusSeconds(3600));
         when(credentialService.getCredentialEntityBySalesChannelId(1L)).thenReturn(credential);
 
         assertThat(service.getValidAccessToken(1L)).isEqualTo("current-access");
@@ -72,18 +72,18 @@ class TokenRefreshServiceTest {
 
     @Test
     void getValidAccessTokenShouldRefreshAndPersistExpiredToken() {
-        credential.setExpiresAt(LocalDateTime.now().minusSeconds(1));
+        credential.setExpiresAt(Instant.now().minusSeconds(1));
         when(credentialService.getCredentialEntityBySalesChannelId(1L)).thenReturn(credential);
         server.expect(requestTo("https://api.mercadolibre.com/oauth/token"))
                 .andExpect(method(org.springframework.http.HttpMethod.POST))
                 .andRespond(withSuccess(
                         "{\"access_token\":\"new-access\",\"refresh_token\":\"new-refresh\",\"expires_in\":21600}",
                         MediaType.APPLICATION_JSON));
-        LocalDateTime before = LocalDateTime.now().plusSeconds(21599);
+        Instant before = Instant.now().plusSeconds(21599);
 
         String result = service.getValidAccessToken(1L);
 
-        LocalDateTime after = LocalDateTime.now().plusSeconds(21601);
+        Instant after = Instant.now().plusSeconds(21601);
         assertThat(result).isEqualTo("new-access");
         ArgumentCaptor<IntegrationCredentialTokenUpdateDTO> captor =
                 ArgumentCaptor.forClass(IntegrationCredentialTokenUpdateDTO.class);

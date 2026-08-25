@@ -9,7 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.doThrow;
@@ -30,12 +30,12 @@ class OrderSynchronizationServiceTest {
 
     @BeforeEach
     void setUp() {
-        order = new ExternalOrderDTO("EXT-1", LocalDateTime.now(), "paid", List.of());
+        order = new ExternalOrderDTO("EXT-1", Instant.now(), "paid", List.of());
     }
 
     @Test
     void synchronizeOrdersShouldProcessOnlyNewOrders() {
-        var imported = new ExternalOrderDTO("EXT-2", LocalDateTime.now(), "paid", List.of());
+        var imported = new ExternalOrderDTO("EXT-2", Instant.now(), "paid", List.of());
         when(marketplaceIntegrationPort.fetchNewOrders(1L)).thenReturn(List.of(order, imported));
         when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1")).thenReturn(false);
         when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-2")).thenReturn(true);
@@ -48,7 +48,7 @@ class OrderSynchronizationServiceTest {
 
     @Test
     void synchronizeOrdersShouldRegisterFailureAndContinue() {
-        var second = new ExternalOrderDTO("EXT-2", LocalDateTime.now(), "paid", List.of());
+        var second = new ExternalOrderDTO("EXT-2", Instant.now(), "paid", List.of());
         when(marketplaceIntegrationPort.fetchNewOrders(1L)).thenReturn(List.of(order, second));
         when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1")).thenReturn(false);
         when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-2")).thenReturn(false);

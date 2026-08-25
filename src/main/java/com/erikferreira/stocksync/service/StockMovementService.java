@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +42,7 @@ public class StockMovementService {
                 .originType(dto.originType())
                 .originId(dto.originId())
                 .note(dto.note())
-                .occurredAt(LocalDateTime.now())
+                .occurredAt(Instant.now())
                 .build();
 
         repository.save(stockMovement);
@@ -107,5 +107,4 @@ public class StockMovementService {
         );
     }
 }
-
 

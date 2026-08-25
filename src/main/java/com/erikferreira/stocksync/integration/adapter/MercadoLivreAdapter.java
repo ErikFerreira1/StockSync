@@ -182,7 +182,7 @@ public class MercadoLivreAdapter implements MarketplaceIntegrationPort {
 
         return new ExternalOrderDTO(
                 order.id().toString(),
-                order.dateCreated().toLocalDateTime(),
+                order.dateCreated().toInstant(),
                 order.status(),
                 orderItems
         );

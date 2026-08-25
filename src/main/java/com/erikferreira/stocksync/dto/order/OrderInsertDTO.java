@@ -5,7 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record OrderInsertDTO(
@@ -16,7 +16,7 @@ public record OrderInsertDTO(
         Long salesChannelId,
 
         @NotNull(message = "Order date is required")
-        LocalDateTime orderDate,
+        Instant orderDate,
 
         @Valid
         @NotNull(message = "Items are required")

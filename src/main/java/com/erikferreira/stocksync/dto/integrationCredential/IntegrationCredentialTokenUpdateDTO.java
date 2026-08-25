@@ -2,7 +2,7 @@ package com.erikferreira.stocksync.dto.integrationCredential;
 
 import jakarta.validation.constraints.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record IntegrationCredentialTokenUpdateDTO(
         @NotBlank(message = "accessToken is required")
@@ -12,6 +12,6 @@ public record IntegrationCredentialTokenUpdateDTO(
         String refreshToken,
 
         @NotNull(message = "expiresAt is required")
-        LocalDateTime expiresAt
+        Instant expiresAt
 ) {
 }

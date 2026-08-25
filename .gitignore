@@ -36,3 +36,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local project notes
+docs/time-handling.md

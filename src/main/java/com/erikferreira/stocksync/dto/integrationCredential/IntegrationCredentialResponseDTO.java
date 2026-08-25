@@ -1,12 +1,12 @@
 package com.erikferreira.stocksync.dto.integrationCredential;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record IntegrationCredentialResponseDTO(
         Long id,
         Long salesChannelId,
         String clientId,
-        LocalDateTime expiresAt,
+        Instant expiresAt,
         boolean connected
 ) {
 }

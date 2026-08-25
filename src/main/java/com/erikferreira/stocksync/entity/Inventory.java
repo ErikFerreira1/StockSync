@@ -3,7 +3,7 @@ package com.erikferreira.stocksync.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "inventory")
@@ -29,11 +29,11 @@ public class Inventory {
     private Integer minQuantity;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     @PrePersist
     @PreUpdate
     private void updateTimestamp() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
     }
 }

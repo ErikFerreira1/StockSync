@@ -11,16 +11,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "app.test.timezone-characterization=true")
+@SpringBootTest(properties = "app.test.timezone-regression=true")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class TimestampTimezoneIntegrationTest extends PostgreSQLIntegrationTest {
 
@@ -43,7 +41,7 @@ class TimestampTimezoneIntegrationTest extends PostgreSQLIntegrationTest {
     }
 
     @Test
-    void inventoryTimestampShouldExposeDriftBetweenLocalJvmTimeAndUtcDatabase() throws Exception {
+    void inventoryTimestampShouldPreserveInstantAcrossDifferentTimeZones() throws Exception {
         String serverDefaultTimeZone = POSTGRESQL.execInContainer(
                 "psql",
                 "-U", POSTGRESQL.getUsername(),
@@ -70,20 +68,16 @@ class TimestampTimezoneIntegrationTest extends PostgreSQLIntegrationTest {
         ));
         Instant afterInsert = Instant.now();
 
-        LocalDateTime storedTimestamp = jdbcTemplate.queryForObject(
+        OffsetDateTime storedTimestamp = jdbcTemplate.queryForObject(
                 "SELECT updated_at FROM inventory WHERE product_id = ?",
-                LocalDateTime.class,
+                OffsetDateTime.class,
                 product.id()
         );
 
-        Instant actualInstant = storedTimestamp.atZone(RECIFE).toInstant();
-        Instant sameValueAssumedToBeUtc = storedTimestamp.toInstant(ZoneOffset.UTC);
-
         assertThat(serverDefaultTimeZone).containsIgnoringCase("UTC");
         assertThat(jdbcSessionTimeZone).isEqualTo("America/Recife");
-        assertThat(columnType).isEqualTo("timestamp without time zone");
-        assertThat(actualInstant).isBetween(beforeInsert.minusSeconds(1), afterInsert.plusSeconds(1));
-        assertThat(Duration.between(sameValueAssumedToBeUtc, actualInstant))
-                .isEqualTo(Duration.ofHours(3));
+        assertThat(columnType).isEqualTo("timestamp with time zone");
+        assertThat(storedTimestamp.toInstant())
+                .isBetween(beforeInsert.minusSeconds(1), afterInsert.plusSeconds(1));
     }
 }

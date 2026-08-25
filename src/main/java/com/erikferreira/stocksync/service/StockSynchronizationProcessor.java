@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class StockSynchronizationProcessor {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void synchronizeListing(MarketplaceListing listing, Integer quantity) {
         marketplaceIntegrationPort.updateStock(listing.getListingId(), quantity);
-        listing.setLastSyncedAt(LocalDateTime.now());
+        listing.setLastSyncedAt(Instant.now());
 
         listingRepository.save(listing);
 
