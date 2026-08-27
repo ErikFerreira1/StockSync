@@ -108,7 +108,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDTO cancelOrder(Long orderId) {
-        Order order = repository.findById(orderId)
+        Order order = repository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + orderId));
 
         if (order.getStatus() == OrderStatus.CANCELED) {

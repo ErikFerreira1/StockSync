@@ -128,7 +128,7 @@ class OrderServiceTest {
 
     @Test
     void cancelOrderShouldSetCanceledAndRegisterMovements() {
-        when(repository.findById(3L)).thenReturn(Optional.of(order));
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         var result = service.cancelOrder(3L);
 
@@ -142,7 +142,7 @@ class OrderServiceTest {
     @Test
     void cancelOrderShouldBeIdempotentWhenAlreadyCanceled() {
         order.setStatus(OrderStatus.CANCELED);
-        when(repository.findById(3L)).thenReturn(Optional.of(order));
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         assertThat(service.cancelOrder(3L).status()).isEqualTo(OrderStatus.CANCELED);
 
@@ -153,7 +153,7 @@ class OrderServiceTest {
     @Test
     void cancelOrderShouldRejectCompletedOrRefundedOrder() {
         order.setStatus(OrderStatus.COMPLETED);
-        when(repository.findById(3L)).thenReturn(Optional.of(order));
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         assertThatThrownBy(() -> service.cancelOrder(3L))
                 .isInstanceOf(InvalidOrderStatusException.class);
