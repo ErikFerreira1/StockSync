@@ -4,6 +4,7 @@ import com.erikferreira.stocksync.integration.MarketplaceIntegrationPort;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -31,6 +32,18 @@ public class OrderSynchronizationService {
 
                 if (!alreadyImported) {
                     orderSynchronizationProcessor.processOrder(salesChannelId, externalOrder);
+                }
+            } catch (DataIntegrityViolationException ex) {
+                boolean alreadyImported = orderService
+                        .existsBySalesChannelIdAndExternalOrderId(salesChannelId, externalOrder.externalOrderId());
+
+                if (!alreadyImported) {
+                    log.error("Failed to synchronize order {} from sales channel {}",
+                            externalOrder.externalOrderId(),
+                            salesChannelId,
+                            ex);
+
+                    registerFailureEvent(salesChannelId, externalOrder, ex);
                 }
             } catch (RuntimeException ex) {
                 log.error(

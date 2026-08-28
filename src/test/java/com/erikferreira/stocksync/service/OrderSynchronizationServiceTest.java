@@ -8,12 +8,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +74,38 @@ class OrderSynchronizationServiceTest {
 
         service.synchronizeOrders(1L);
 
+        verify(syncEventService).registerOrderFailure(1L, "EXT-1", failure);
+    }
+
+    @Test
+    void synchronizeOrdersShouldIgnoreConcurrentDuplicate() {
+        when(marketplaceIntegrationPort.fetchNewOrders(1L)).thenReturn(List.of(order));
+        when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1"))
+                .thenReturn(false, true);
+        DataIntegrityViolationException failure =
+                new DataIntegrityViolationException("duplicate order");
+        doThrow(failure).when(processor).processOrder(1L, order);
+
+        service.synchronizeOrders(1L);
+
+        verify(orderService, times(2))
+                .existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1");
+        verify(syncEventService, never()).registerOrderFailure(1L, "EXT-1", failure);
+    }
+
+    @Test
+    void synchronizeOrdersShouldRegisterFailureWhenIntegrityViolationIsNotDuplicate() {
+        when(marketplaceIntegrationPort.fetchNewOrders(1L)).thenReturn(List.of(order));
+        when(orderService.existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1"))
+                .thenReturn(false, false);
+        DataIntegrityViolationException failure =
+                new DataIntegrityViolationException("integrity violation");
+        doThrow(failure).when(processor).processOrder(1L, order);
+
+        service.synchronizeOrders(1L);
+
+        verify(orderService, times(2))
+                .existsBySalesChannelIdAndExternalOrderId(1L, "EXT-1");
         verify(syncEventService).registerOrderFailure(1L, "EXT-1", failure);
     }
 }
