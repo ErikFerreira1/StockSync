@@ -9,12 +9,14 @@ import com.erikferreira.stocksync.dto.product.ProductResponseDTO;
 import com.erikferreira.stocksync.dto.salesChannel.SalesChannelResponseDTO;
 import com.erikferreira.stocksync.dto.stockMovement.StockMovementResponseDTO;
 import com.erikferreira.stocksync.dto.syncEvent.SyncEventResponseDTO;
+import com.erikferreira.stocksync.dto.user.UserResponseDTO;
 import com.erikferreira.stocksync.entity.IntegrationCredential;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
 import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import com.erikferreira.stocksync.entity.enums.MovementType;
 import com.erikferreira.stocksync.entity.enums.OrderStatus;
 import com.erikferreira.stocksync.entity.enums.SyncStatus;
+import com.erikferreira.stocksync.entity.enums.UserRole;
 import com.erikferreira.stocksync.service.IntegrationCredentialService;
 import com.erikferreira.stocksync.service.InventoryService;
 import com.erikferreira.stocksync.service.MarketplaceListingService;
@@ -25,7 +27,9 @@ import com.erikferreira.stocksync.service.SalesChannelService;
 import com.erikferreira.stocksync.service.StockMovementService;
 import com.erikferreira.stocksync.service.SyncEventService;
 import com.erikferreira.stocksync.service.TokenRefreshService;
+import com.erikferreira.stocksync.service.UserService;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
+import com.erikferreira.stocksync.service.exceptions.UsernameAlreadyExistsException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,6 +74,7 @@ class ControllerContractTest {
     @Mock private SyncEventService syncEventService;
     @Mock private IntegrationCredentialService credentialService;
     @Mock private TokenRefreshService tokenRefreshService;
+    @Mock private UserService userService;
     @Mock private RestClient restClient;
 
     private MockMvc mvc;
@@ -89,6 +94,7 @@ class ControllerContractTest {
                         new StockMovementController(stockMovementService),
                         new SyncEventController(syncEventService),
                         new IntegrationCredentialController(credentialService, tokenRefreshService),
+                        new UserController(userService),
                         authController
                 )
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -233,6 +239,46 @@ class ControllerContractTest {
                         """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/integration-credentials/6"));
+    }
+
+    @Test
+    void userControllerShouldCreateUserWithoutExposingPassword() throws Exception {
+        Instant createdAt = Instant.parse("2026-08-31T12:00:00Z");
+        when(userService.insert(any())).thenReturn(new UserResponseDTO(
+                7L, "admin", UserRole.ADMIN, true, createdAt));
+
+        mvc.perform(post("/users").contentType("application/json").content("""
+                        {"username":"admin","password":"password123","role":"ADMIN"}
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/users/7"))
+                .andExpect(jsonPath("$.username").value("admin"))
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
+
+    @Test
+    void userControllerShouldRejectInvalidBody() throws Exception {
+        mvc.perform(post("/users").contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Validation error"))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void userControllerShouldTranslateDuplicateUsername() throws Exception {
+        when(userService.insert(any()))
+                .thenThrow(new UsernameAlreadyExistsException("Username already exists: admin"));
+
+        mvc.perform(post("/users").contentType("application/json").content("""
+                        {"username":"admin","password":"password123","role":"ADMIN"}
+                        """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Username already exists"))
+                .andExpect(jsonPath("$.message").value("Username already exists: admin"))
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test

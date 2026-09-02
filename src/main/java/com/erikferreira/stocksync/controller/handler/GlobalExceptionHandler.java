@@ -57,6 +57,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleUsernameAlreadyExistsException(
+            UsernameAlreadyExistsException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Username already exists",
+                ex.getMessage(),
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(MarketplaceIntegrationException.class)
     public ResponseEntity<Map<String, Object>> handleMarketplaceIntegrationException(
             MarketplaceIntegrationException ex) {

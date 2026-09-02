@@ -1,19 +1,7 @@
 package com.erikferreira.stocksync.repository;
 
-import com.erikferreira.stocksync.entity.IntegrationCredential;
-import com.erikferreira.stocksync.entity.Inventory;
-import com.erikferreira.stocksync.entity.MarketplaceListing;
-import com.erikferreira.stocksync.entity.Order;
-import com.erikferreira.stocksync.entity.OrderItem;
-import com.erikferreira.stocksync.entity.Product;
-import com.erikferreira.stocksync.entity.SalesChannel;
-import com.erikferreira.stocksync.entity.StockMovement;
-import com.erikferreira.stocksync.entity.SyncEvent;
-import com.erikferreira.stocksync.entity.enums.ChannelType;
-import com.erikferreira.stocksync.entity.enums.ListingStatus;
-import com.erikferreira.stocksync.entity.enums.MovementType;
-import com.erikferreira.stocksync.entity.enums.OrderStatus;
-import com.erikferreira.stocksync.entity.enums.SyncStatus;
+import com.erikferreira.stocksync.entity.*;
+import com.erikferreira.stocksync.entity.enums.*;
 import com.erikferreira.stocksync.support.PostgreSQLIntegrationTest;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
@@ -24,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
@@ -31,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest(properties = {
         "spring.jpa.properties.hibernate.generate_statistics=true",
@@ -50,6 +40,7 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
     @Autowired private SyncEventRepository syncEventRepository;
     @Autowired private TestEntityManager entityManager;
     @Autowired private EntityManagerFactory entityManagerFactory;
+    @Autowired private UserRepository userRepository;
 
     private Product product;
     private SalesChannel channel;
@@ -174,4 +165,49 @@ class RepositoryIntegrationTest extends PostgreSQLIntegrationTest {
         assertThat(syncEventRepository.findByStatus(SyncStatus.FAILURE, PageRequest.of(0, 10)).getContent())
                 .contains(older, newer);
     }
+
+    @Test
+    void userQueriesShouldFindByUsernameAndDetectExistence() {
+        String username = "user" + System.nanoTime();
+        String passwordHash = "$2a$12$VVBXU5K8bqS6o/IezhXRMec2qWqIGklUu2YIXjhXE7lXNLqlPHBcO";
+
+        User user = userRepository.save(User.builder()
+                .username(username)
+                .passwordHash(passwordHash)
+                .role(UserRole.ADMIN)
+                .build());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        var result = userRepository.findByUsername(user.getUsername());
+
+        assertThat(result).isNotEmpty();
+        assertThat(result.get().getUsername()).isEqualTo(user.getUsername());
+        assertThat(result.get().getRole()).isEqualTo(user.getRole());
+        assertThat(result.get().getCreatedAt()).isNotNull();
+        assertThat(result.get().isActive()).isTrue();
+        assertThat(userRepository.existsByUsername(user.getUsername())).isTrue();
+        assertThat(userRepository.existsByUsername("TestFail")).isFalse();
+    }
+
+    @Test
+    void userUsernameShouldBeUnique() {
+        String username = "duplicate-user-" + System.nanoTime();
+        String passwordHash = "$2a$12$VVBXU5K8bqS6o/IezhXRMec2qWqIGklUu2YIXjhXE7lXNLqlPHBcO";
+
+        userRepository.saveAndFlush(User.builder()
+                .username(username)
+                .passwordHash(passwordHash)
+                .role(UserRole.ADMIN)
+                .build());
+
+        assertThatThrownBy(() -> userRepository.saveAndFlush(User.builder()
+                .username(username)
+                .passwordHash(passwordHash)
+                .role(UserRole.VIEWER)
+                .build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
 }
