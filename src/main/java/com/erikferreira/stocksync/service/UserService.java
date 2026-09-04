@@ -1,9 +1,12 @@
 package com.erikferreira.stocksync.service;
 
+import com.erikferreira.stocksync.dto.user.PasswordChangeDTO;
 import com.erikferreira.stocksync.dto.user.UserInsertDTO;
 import com.erikferreira.stocksync.dto.user.UserResponseDTO;
 import com.erikferreira.stocksync.entity.User;
 import com.erikferreira.stocksync.repository.UserRepository;
+import com.erikferreira.stocksync.service.exceptions.InvalidCurrentPasswordException;
+import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import com.erikferreira.stocksync.service.exceptions.UsernameAlreadyExistsException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,18 @@ public class UserService {
         userRepository.save(user);
 
         return toResponse(user);
+    }
+
+    @Transactional
+    public void changePassword(String username, @Valid PasswordChangeDTO passwordChangeDTO) {
+       User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Username not found " + username));
+
+        if (!passwordEncoder.matches(passwordChangeDTO.currentPassword(), user.getPasswordHash())) {
+            throw new InvalidCurrentPasswordException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(passwordChangeDTO.newPassword()));
     }
 
     // helpers

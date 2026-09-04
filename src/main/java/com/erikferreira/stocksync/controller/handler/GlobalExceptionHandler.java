@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.security.core.AuthenticationException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -113,6 +114,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleInvalidSyncEventException(InvalidSyncEventException ex) {
         Map<String, Object> response = createErrorResponse(
                 "Invalid sync event",
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthenticationException() {
+        Map<String, Object> response = createErrorResponse(
+                "Authentication failed",
+                "Invalid username or password",
+                HttpStatus.UNAUTHORIZED.value()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCurrentPasswordException(
+            InvalidCurrentPasswordException ex) {
+        Map<String, Object> response = createErrorResponse(
+                "Invalid current password",
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST.value()
         );

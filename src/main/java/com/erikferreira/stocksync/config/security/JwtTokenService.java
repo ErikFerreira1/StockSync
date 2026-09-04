@@ -18,7 +18,7 @@ import java.util.List;
 @Service
 public class JwtTokenService {
 
-    private static final String ISSUER = "https://stocksync.local";
+    public static final String ISSUER = "https://stocksync.local";
 
     private final JwtEncoder jwtEncoder;
     private final Duration expiration;
