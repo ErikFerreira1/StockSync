@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -127,14 +128,14 @@ class ControllerContractTest {
     }
 
     @Test
-    void productControllerShouldTranslateNotFoundAndDeleteProduct() throws Exception {
+    void productControllerShouldTranslateNotFoundAndNotExposeHardDelete() throws Exception {
         when(productService.findById(99L)).thenThrow(new ResourceNotFoundException("Product not found"));
         mvc.perform(get("/products/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
 
-        mvc.perform(delete("/products/1")).andExpect(status().isNoContent());
-        verify(productService).hardDelete(1L);
+        mvc.perform(delete("/products/1")).andExpect(status().isMethodNotAllowed());
+        verify(productService, never()).hardDelete(any());
     }
 
     @Test
@@ -220,14 +221,12 @@ class ControllerContractTest {
     }
 
     @Test
-    void syncEventControllerShouldCreateEvent() throws Exception {
-        when(syncEventService.registerEvent(any())).thenReturn(new SyncEventResponseDTO(
-                5L, 1L, 2L, null, null, Instant.now(), SyncStatus.SUCCESS, null, 1));
+    void syncEventControllerShouldNotExposeManualEventCreation() throws Exception {
         mvc.perform(post("/sync-events").contentType("application/json").content("""
                         {"productId":1,"salesChannelId":2,"status":"SUCCESS"}
                         """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
+                .andExpect(status().isNotFound());
+        verify(syncEventService, never()).registerEvent(any());
     }
 
     @Test

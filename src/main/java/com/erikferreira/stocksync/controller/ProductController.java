@@ -64,11 +64,11 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> hardDelete(@PathVariable Long id) {
-        service.hardDelete(id);
-
-        return ResponseEntity.noContent().build();
-    }
+    //@DeleteMapping("/{id}")
+    //public ResponseEntity<Void> hardDelete(@PathVariable Long id) {
+    //    service.hardDelete(id);
+    //
+    //    return ResponseEntity.noContent().build();
+    //}
 
 }

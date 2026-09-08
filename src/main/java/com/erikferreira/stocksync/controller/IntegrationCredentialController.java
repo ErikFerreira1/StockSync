@@ -2,8 +2,6 @@ package com.erikferreira.stocksync.controller;
 
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialInsertDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialResponseDTO;
-import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialTokenUpdateDTO;
-import com.erikferreira.stocksync.entity.IntegrationCredential;
 import com.erikferreira.stocksync.service.IntegrationCredentialService;
 import com.erikferreira.stocksync.service.TokenRefreshService;
 import jakarta.validation.Valid;
@@ -32,10 +30,10 @@ public class IntegrationCredentialController {
         return ResponseEntity.ok(service.findBySalesChannelId(salesChannelId));
     }
 
-    @GetMapping("/{salesChannelId}/valid-token") // delete later
-    public ResponseEntity<String> getValidAccessToken(@PathVariable Long salesChannelId) {
-        return ResponseEntity.ok(tokenRefreshService.getValidAccessToken(salesChannelId));
-    }
+    //@GetMapping("/{salesChannelId}/valid-token") // delete later
+    //public ResponseEntity<String> getValidAccessToken(@PathVariable Long salesChannelId) {
+    //    return ResponseEntity.ok(tokenRefreshService.getValidAccessToken(salesChannelId));
+    //}
 
     @PostMapping
     public ResponseEntity<IntegrationCredentialResponseDTO> register(@Valid @RequestBody IntegrationCredentialInsertDTO dto) {
@@ -46,10 +44,10 @@ public class IntegrationCredentialController {
         return ResponseEntity.created(uri).body(response);
     }
 
-    @PatchMapping("/{salesChannelId}/token")
-    public ResponseEntity<IntegrationCredentialResponseDTO> updateToken(@PathVariable Long salesChannelId,
-                                                                        @Valid @RequestBody IntegrationCredentialTokenUpdateDTO dto) {
-        return ResponseEntity.ok(service.updateToken(salesChannelId, dto));
-    }
+    //@PatchMapping("/{salesChannelId}/token")
+    //public ResponseEntity<IntegrationCredentialResponseDTO> updateToken(@PathVariable Long salesChannelId,
+    //                                                                    @Valid @RequestBody IntegrationCredentialTokenUpdateDTO dto) {
+    //    return ResponseEntity.ok(service.updateToken(salesChannelId, dto));
+    //}
 
 }

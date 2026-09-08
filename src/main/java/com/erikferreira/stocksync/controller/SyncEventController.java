@@ -28,10 +28,10 @@ public class SyncEventController {
         return ResponseEntity.ok(service.findFailedEvents(pageable));
     }
 
-    @PostMapping
-    public ResponseEntity<SyncEventResponseDTO> registerEvent(@Valid @RequestBody SyncEventInsertDTO dto) {
-        SyncEventResponseDTO response = service.registerEvent(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    //@PostMapping
+    //public ResponseEntity<SyncEventResponseDTO> registerEvent(@Valid @RequestBody SyncEventInsertDTO dto) {
+    //    SyncEventResponseDTO response = service.registerEvent(dto);
+    //    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    //}
 
 }

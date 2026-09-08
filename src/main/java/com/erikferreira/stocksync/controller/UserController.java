@@ -6,6 +6,8 @@ import com.erikferreira.stocksync.dto.user.UserResponseDTO;
 import com.erikferreira.stocksync.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,16 @@ import java.net.URI;
 public class UserController {
 
     private final UserService service;
+
+    @GetMapping
+    public ResponseEntity<Page<UserResponseDTO>> findAllPaged(Pageable pageable) {
+        return ResponseEntity.ok(service.findAllPaged(pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.findById(id));
+    }
 
     @PostMapping
     public ResponseEntity<UserResponseDTO> insert(@Valid @RequestBody UserInsertDTO insertDTO) {
@@ -41,4 +53,20 @@ public class UserController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Void> activate(@PathVariable Long id) {
+        service.activate(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+        service.deactivate(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+
 }

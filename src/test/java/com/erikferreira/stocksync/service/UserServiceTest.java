@@ -5,12 +5,16 @@ import com.erikferreira.stocksync.dto.user.UserInsertDTO;
 import com.erikferreira.stocksync.entity.User;
 import com.erikferreira.stocksync.entity.enums.UserRole;
 import com.erikferreira.stocksync.repository.UserRepository;
+import com.erikferreira.stocksync.service.exceptions.DatabaseException;
 import com.erikferreira.stocksync.service.exceptions.InvalidCurrentPasswordException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import com.erikferreira.stocksync.service.exceptions.UsernameAlreadyExistsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -93,6 +97,54 @@ class UserServiceTest {
 
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void insertShouldRejectSecondAdministrator() {
+        when(userRepository.existsByRole(UserRole.ADMIN)).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.insert(insertDTO))
+                .isInstanceOf(DatabaseException.class)
+                .hasMessage("An administrator already exists");
+
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"OPERATOR", "VIEWER"})
+    void insertShouldAllowNonAdminRoles(UserRole role) {
+        when(passwordEncoder.encode("password123")).thenReturn(passwordHash);
+
+        var response = userService.insert(new UserInsertDTO("new-user", "password123", role));
+
+        assertThat(response.role()).isEqualTo(role);
+        verify(userRepository).save(any(User.class));
+        verify(userRepository, never()).existsByRole(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void deactivateShouldRejectAdministrator(boolean active) {
+        User admin = User.builder().id(1L).role(UserRole.ADMIN).active(active).build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> userService.deactivate(1L))
+                .isInstanceOf(DatabaseException.class)
+                .hasMessage("Cannot deactivate the administrator");
+
+        assertThat(admin.isActive()).isEqualTo(active);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"OPERATOR", "VIEWER"})
+    void deactivateShouldAllowNonAdminRoles(UserRole role) {
+        User user = User.builder().id(2L).role(role).active(true).build();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+
+        userService.deactivate(2L);
+
+        assertThat(user.isActive()).isFalse();
     }
 
     @Test

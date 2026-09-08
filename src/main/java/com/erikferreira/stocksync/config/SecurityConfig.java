@@ -23,6 +23,7 @@ public class SecurityConfig {
             auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
             auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/mercadolivre/callback").permitAll();
+            auth.requestMatchers("/integration-credentials/**", "/mercadolivre/authorize/**").hasRole("ADMIN");
             auth.requestMatchers(HttpMethod.PATCH, "/users/me/password").authenticated();
             auth.requestMatchers("/users/**").hasRole("ADMIN");
             auth.requestMatchers(HttpMethod.GET, "/**").hasAnyRole("ADMIN", "OPERATOR", "VIEWER");
