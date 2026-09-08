@@ -27,7 +27,7 @@ public class StockMovementController {
 
     @PostMapping
     public ResponseEntity<StockMovementResponseDTO> registerMovement(@Valid @RequestBody StockMovementInsertDTO dto) {
-        StockMovementResponseDTO response = service.registerMovement(dto);
+        StockMovementResponseDTO response = service.registerManualMovement(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

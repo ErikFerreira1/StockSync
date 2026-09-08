@@ -8,14 +8,12 @@ import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.SyncEvent;
 import com.erikferreira.stocksync.entity.enums.SyncStatus;
 import com.erikferreira.stocksync.repository.SyncEventRepository;
-
 import com.erikferreira.stocksync.service.exceptions.InvalidSyncEventException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -51,7 +49,7 @@ public class SyncEventService {
         Product product = dto.productId() != null ? productService.getProductEntityById(dto.productId()) : null;
 
 
-        SyncEvent entity = SyncEvent.builder().product(product).salesChannel(salesChannel).order(order).timestamp(Instant.now()).status(dto.status()).errorMessage(dto.errorMessage()).externalOrderId(dto.externalOrderId()).build();
+        SyncEvent entity = SyncEvent.builder().product(product).salesChannel(salesChannel).order(order).timestamp(Instant.now()).status(dto.status()).errorMessage(safeStoredErrorMessage(dto.errorMessage())).externalOrderId(dto.externalOrderId()).build();
 
         repository.save(entity);
 
@@ -71,11 +69,7 @@ public class SyncEventService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registerOrderFailure(Long salesChannelId, String externalOrderId, RuntimeException exception) {
-        String errorMessage = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
-
-        if (errorMessage.length() > 500) {
-            errorMessage = errorMessage.substring(0, 500);
-        }
+        String errorMessage = safeErrorMessage(exception);
 
         registerEvent(new SyncEventInsertDTO(
                 null,
@@ -98,12 +92,7 @@ public class SyncEventService {
     }
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registerStockFailure(Long productId, Long salesChannelId, RuntimeException exception) {
-
-        String errorMessage = exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
-
-        if (errorMessage.length() > 500) {
-            errorMessage = errorMessage.substring(0, 500);
-        }
+        String errorMessage = safeErrorMessage(exception);
 
         registerEvent(new SyncEventInsertDTO(
                 productId,
@@ -133,6 +122,26 @@ public class SyncEventService {
         Long orderId = syncEvent.getOrder() != null ? syncEvent.getOrder().getId() : null;
         Long productId = syncEvent.getProduct() != null ? syncEvent.getProduct().getId() : null;
 
-        return new SyncEventResponseDTO(syncEvent.getId(), productId, syncEvent.getSalesChannel().getId(), orderId, syncEvent.getExternalOrderId(), syncEvent.getTimestamp(), syncEvent.getStatus(), syncEvent.getErrorMessage(), syncEvent.getAttempts());
+        return new SyncEventResponseDTO(syncEvent.getId(), productId, syncEvent.getSalesChannel().getId(), orderId, syncEvent.getExternalOrderId(), syncEvent.getTimestamp(), syncEvent.getStatus(), safeStoredErrorMessage(syncEvent.getErrorMessage()), syncEvent.getAttempts());
+    }
+
+    private String safeStoredErrorMessage(String message) {
+        if (message == null) {
+            return null;
+        }
+        return switch (message) {
+            case "Marketplace integration failed", "Marketplace credential is not authorized",
+                 "Insufficient stock", "Synchronization failed" -> message;
+            default -> "Synchronization failed";
+        };
+    }
+
+    private String safeErrorMessage(RuntimeException exception) {
+        return switch (exception.getClass().getSimpleName()) {
+            case "MarketplaceIntegrationException" -> "Marketplace integration failed";
+            case "CredentialNotAuthorizedException" -> "Marketplace credential is not authorized";
+            case "InsufficientStockException" -> "Insufficient stock";
+            default -> "Synchronization failed";
+        };
     }
 }

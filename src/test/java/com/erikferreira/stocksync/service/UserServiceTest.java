@@ -145,6 +145,7 @@ class UserServiceTest {
         userService.deactivate(2L);
 
         assertThat(user.isActive()).isFalse();
+        assertThat(user.getAuthVersion()).isEqualTo(1);
     }
 
     @Test
@@ -162,6 +163,7 @@ class UserServiceTest {
         userService.changePassword("admin", changeDTO);
 
         assertThat(user.getPasswordHash()).isEqualTo("{bcrypt}new-hash");
+        assertThat(user.getAuthVersion()).isEqualTo(1);
         verify(passwordEncoder).encode("new-password");
     }
 
@@ -181,6 +183,7 @@ class UserServiceTest {
                 .hasMessage("Current password is incorrect");
 
         assertThat(user.getPasswordHash()).isEqualTo("{bcrypt}current-hash");
+        assertThat(user.getAuthVersion()).isZero();
         verify(passwordEncoder, never()).encode(anyString());
     }
 

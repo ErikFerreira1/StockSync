@@ -36,6 +36,10 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Builder.Default
+    @Column(name = "auth_version", nullable = false)
+    private Integer authVersion = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

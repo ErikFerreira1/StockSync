@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 class SecurityIntegrationTest extends PostgreSQLIntegrationTest {
+
+    private static final AtomicInteger CLIENT_SEQUENCE = new AtomicInteger();
+    private String clientAddress;
 
     private static final String ADMIN_USERNAME = "security-admin";
     private static final String ADMIN_PASSWORD = "admin-password";
@@ -53,6 +57,7 @@ class SecurityIntegrationTest extends PostgreSQLIntegrationTest {
 
     @BeforeEach
     void setUpUsers() {
+        clientAddress = "192.0.2." + CLIENT_SEQUENCE.incrementAndGet();
         userRepository.save(User.builder()
                 .username(ADMIN_USERNAME)
                 .passwordHash(passwordEncoder.encode(ADMIN_PASSWORD))
@@ -146,7 +151,41 @@ class SecurityIntegrationTest extends PostgreSQLIntegrationTest {
                         .content(passwordChangeBody(VIEWER_PASSWORD, "new-viewer-password")))
                 .andExpect(status().isNoContent());
 
-        login(VIEWER_USERNAME, "new-viewer-password");
+        mvc.perform(get("/products").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+
+        String newToken = login(VIEWER_USERNAME, "new-viewer-password");
+        mvc.perform(get("/products").header("Authorization", "Bearer " + newToken))
+                .andExpect(status().isOk());
+        mvc.perform(post("/auth/login").contentType("application/json")
+                        .content(loginBody(VIEWER_USERNAME, VIEWER_PASSWORD)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deactivationShouldRevokeTokensEvenAfterReactivation() throws Exception {
+        String adminToken = login(ADMIN_USERNAME, ADMIN_PASSWORD);
+        String viewerToken = login(VIEWER_USERNAME, VIEWER_PASSWORD);
+        Long viewerId = userRepository.findByUsername(VIEWER_USERNAME).orElseThrow().getId();
+
+        mvc.perform(patch("/users/{id}/deactivate", viewerId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/products").header("Authorization", "Bearer " + viewerToken))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/auth/login").contentType("application/json")
+                        .content(loginBody(VIEWER_USERNAME, VIEWER_PASSWORD)))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(patch("/users/{id}/activate", viewerId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/products").header("Authorization", "Bearer " + viewerToken))
+                .andExpect(status().isUnauthorized());
+
+        String newToken = login(VIEWER_USERNAME, VIEWER_PASSWORD);
+        mvc.perform(get("/products").header("Authorization", "Bearer " + newToken))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -172,6 +211,10 @@ class SecurityIntegrationTest extends PostgreSQLIntegrationTest {
 
     private String login(String username, String password) throws Exception {
         String response = mvc.perform(post("/auth/login")
+                        .with(request -> {
+                            request.setRemoteAddr(clientAddress);
+                            return request;
+                        })
                         .contentType("application/json")
                         .content(loginBody(username, password)))
                 .andExpect(status().isOk())

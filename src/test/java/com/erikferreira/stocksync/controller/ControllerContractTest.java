@@ -21,6 +21,7 @@ import com.erikferreira.stocksync.service.IntegrationCredentialService;
 import com.erikferreira.stocksync.service.InventoryService;
 import com.erikferreira.stocksync.service.MarketplaceListingService;
 import com.erikferreira.stocksync.service.OrderService;
+import com.erikferreira.stocksync.service.OAuthStateService;
 import com.erikferreira.stocksync.service.OrderSynchronizationService;
 import com.erikferreira.stocksync.service.ProductService;
 import com.erikferreira.stocksync.service.SalesChannelService;
@@ -77,13 +78,14 @@ class ControllerContractTest {
     @Mock private TokenRefreshService tokenRefreshService;
     @Mock private UserService userService;
     @Mock private RestClient restClient;
+    @Mock private OAuthStateService stateService;
 
     private MockMvc mvc;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        MercadoLivreAuthController authController = new MercadoLivreAuthController(credentialService, restClient);
+        MercadoLivreAuthController authController = new MercadoLivreAuthController(credentialService, restClient, stateService);
         ReflectionTestUtils.setField(authController, "redirectUri", "http://localhost:8080/mercadolivre/callback");
         mvc = MockMvcBuilders.standaloneSetup(
                         new ProductController(productService),
@@ -211,7 +213,7 @@ class ControllerContractTest {
 
     @Test
     void stockMovementControllerShouldCreateMovement() throws Exception {
-        when(stockMovementService.registerMovement(any())).thenReturn(new StockMovementResponseDTO(
+        when(stockMovementService.registerManualMovement(any())).thenReturn(new StockMovementResponseDTO(
                 4L, 1L, Instant.now(), 2, MovementType.MANUAL_INCREASE, null, null, "restock"));
         mvc.perform(post("/stock-movement").contentType("application/json").content("""
                         {"productId":1,"quantity":2,"type":"MANUAL_INCREASE","note":"restock"}
@@ -282,12 +284,14 @@ class ControllerContractTest {
 
     @Test
     void mercadoLivreAuthControllerShouldRedirectToAuthorizationPage() throws Exception {
+        when(stateService.generateState()).thenReturn("browser-token");
+        when(stateService.createState(2L, "browser-token")).thenReturn("random-state");
         when(credentialService.getCredentialEntityBySalesChannelId(2L)).thenReturn(
                 IntegrationCredential.builder().clientId("client-id").build());
         mvc.perform(get("/mercadolivre/authorize/2"))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location",
                         "https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=client-id"
-                                + "&redirect_uri=http://localhost:8080/mercadolivre/callback&state=2"));
+                                + "&redirect_uri=http://localhost:8080/mercadolivre/callback&state=random-state"));
     }
 }

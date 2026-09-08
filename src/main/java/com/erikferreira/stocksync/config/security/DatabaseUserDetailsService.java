@@ -22,11 +22,6 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPasswordHash())
-                .roles(user.getRole().name())
-                .disabled(!user.isActive())
-                .build();
+        return new AuthenticatedUser(user);
     }
 }

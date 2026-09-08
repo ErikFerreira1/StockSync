@@ -77,6 +77,7 @@ public class UserService {
         }
 
         user.setPasswordHash(passwordEncoder.encode(passwordChangeDTO.newPassword()));
+        user.setAuthVersion(user.getAuthVersion() + 1);
     }
 
     @Transactional
@@ -85,6 +86,7 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         user.setActive(true);
+        user.setAuthVersion(user.getAuthVersion() + 1);
     }
 
     @Transactional
@@ -97,6 +99,7 @@ public class UserService {
         }
 
         user.setActive(false);
+        user.setAuthVersion(user.getAuthVersion() + 1);
     }
 
     // helpers

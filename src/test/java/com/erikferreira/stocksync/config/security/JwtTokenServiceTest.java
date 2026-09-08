@@ -1,5 +1,8 @@
 package com.erikferreira.stocksync.config.security;
 
+import com.erikferreira.stocksync.entity.User;
+import com.erikferreira.stocksync.entity.enums.UserRole;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +46,8 @@ class JwtTokenServiceTest {
     @Test
     void generateShouldEncodeTokenWithExpectedHeaderAndClaims() {
         Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
-                "admin",
+                new AuthenticatedUser(User.builder().username("admin").passwordHash("hash")
+                        .role(UserRole.ADMIN).authVersion(3).build()),
                 "password",
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
         );
@@ -68,6 +72,7 @@ class JwtTokenServiceTest {
                 .isEqualTo(parameters.getClaims().getIssuedAt().plus(EXPIRATION));
         assertThat(parameters.getClaims().getClaims().get("roles"))
                 .isEqualTo(List.of("ROLE_ADMIN"));
+        assertThat(parameters.getClaims().getClaims().get("auth_version")).isEqualTo(3);
     }
 
     @Test

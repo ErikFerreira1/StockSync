@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -73,6 +74,16 @@ class StockMovementServiceTest {
         assertThat(result.type()).isEqualTo(type);
         verify(repository).save(any(StockMovement.class));
         verifyInventoryAction(type);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = MovementType.class, names = {"SALE", "CANCELLATION", "REFUND", "RECONCILIATION_CORRECTION"})
+    void manualEndpointShouldRejectSystemMovements(MovementType type) {
+        var dto = new StockMovementInsertDTO(1L, 2, type, OriginType.ORDER, 5L, "test");
+
+        assertThatThrownBy(() -> service.registerManualMovement(dto))
+                .isInstanceOf(InvalidMovementOriginException.class);
+        org.mockito.Mockito.verifyNoInteractions(repository, productService, inventoryService);
     }
 
     @Test

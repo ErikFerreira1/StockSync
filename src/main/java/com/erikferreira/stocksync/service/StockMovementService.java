@@ -6,6 +6,7 @@ import com.erikferreira.stocksync.dto.stockMovement.StockMovementInsertDTO;
 import com.erikferreira.stocksync.dto.stockMovement.StockMovementResponseDTO;
 import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.StockMovement;
+import com.erikferreira.stocksync.entity.enums.MovementType;
 import com.erikferreira.stocksync.entity.enums.OriginType;
 import com.erikferreira.stocksync.repository.StockMovementRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidMovementOriginException;
@@ -79,6 +80,15 @@ public class StockMovementService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public StockMovementResponseDTO registerManualMovement(@Valid StockMovementInsertDTO dto) {
+        if (dto.type() != MovementType.MANUAL_INCREASE && dto.type() != MovementType.MANUAL_DECREASE) {
+            throw new InvalidMovementOriginException("Only manual movements are allowed through this endpoint");
+        }
+
+        return registerMovement(dto);
     }
 
     private void applyToInventory(StockMovementInsertDTO dto) {

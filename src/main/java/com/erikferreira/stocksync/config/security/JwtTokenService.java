@@ -37,6 +37,9 @@ public class JwtTokenService {
         if (!authentication.isAuthenticated()) {
             throw new IllegalArgumentException("It is not possible to generate a token for an unauthenticated user");
         }
+        if (!(authentication.getPrincipal() instanceof AuthenticatedUser user) || !user.isEnabled()) {
+            throw new IllegalArgumentException("Token generation requires an active database user");
+        }
 
         Instant issuedAt = Instant.now();
         Instant expiresAt = issuedAt.plus(expiration);
@@ -50,6 +53,7 @@ public class JwtTokenService {
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt)
                 .claim("roles", roles)
+                .claim("auth_version", user.getAuthVersion())
                 .build();
 
         JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();

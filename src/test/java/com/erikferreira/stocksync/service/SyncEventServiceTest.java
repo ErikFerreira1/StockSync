@@ -65,6 +65,33 @@ class SyncEventServiceTest {
     }
 
     @Test
+    void historyAndFailedQueriesShouldHideLegacyInternalMessages() {
+        var pageable = PageRequest.of(0, 10);
+        event.setStatus(SyncStatus.FAILURE);
+        event.setErrorMessage("OAuth response: access_token=secret");
+        when(repository.findByProductIdOrderByTimestampDesc(1L, pageable))
+                .thenReturn(new PageImpl<>(List.of(event)));
+        when(repository.findByStatus(SyncStatus.FAILURE, pageable))
+                .thenReturn(new PageImpl<>(List.of(event)));
+
+        assertThat(service.findHistoryByProduct(1L, pageable).getContent().get(0).errorMessage())
+                .isEqualTo("Synchronization failed");
+        assertThat(service.findFailedEvents(pageable).getContent().get(0).errorMessage())
+                .isEqualTo("Synchronization failed");
+        assertThat(event.getErrorMessage()).contains("access_token=secret");
+    }
+
+    @Test
+    void registerEventShouldSanitizeFreeTextBeforeSaving() {
+        when(salesChannelService.getSalesChannelEntityById(2L)).thenReturn(channel);
+        var dto = new SyncEventInsertDTO(null, 2L, null, "ORDER-1", SyncStatus.FAILURE,
+                "OAuth response: access_token=secret");
+
+        assertThat(service.registerEvent(dto).errorMessage()).isEqualTo("Synchronization failed");
+        assertThat(captureSavedEvent().getErrorMessage()).isEqualTo("Synchronization failed");
+    }
+
+    @Test
     void registerEventShouldResolveReferencesAndSave() {
         var dto = new SyncEventInsertDTO(1L, 2L, 3L, "ORDER-1", SyncStatus.SUCCESS, null);
         when(productService.getProductEntityById(1L)).thenReturn(product);
@@ -122,14 +149,15 @@ class SyncEventServiceTest {
     }
 
     @Test
-    void registerFailureShouldLimitErrorMessageToFiveHundredCharacters() {
+    void registerFailureShouldHideInternalExceptionMessage() {
         when(salesChannelService.getSalesChannelEntityById(2L)).thenReturn(channel);
 
-        service.registerOrderFailure(2L, "ORDER-1", new RuntimeException("x".repeat(600)));
+        service.registerOrderFailure(2L, "ORDER-1", new RuntimeException("database password=secret"));
 
         SyncEvent saved = captureSavedEvent();
         assertThat(saved.getStatus()).isEqualTo(SyncStatus.FAILURE);
-        assertThat(saved.getErrorMessage()).hasSize(500);
+        assertThat(saved.getErrorMessage()).isEqualTo("Synchronization failed");
+        assertThat(saved.getErrorMessage()).doesNotContain("secret");
     }
 
     private SyncEvent captureSavedEvent() {
