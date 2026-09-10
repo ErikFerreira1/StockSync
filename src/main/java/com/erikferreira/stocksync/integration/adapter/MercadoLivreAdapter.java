@@ -3,10 +3,12 @@ package com.erikferreira.stocksync.integration.adapter;
 import com.erikferreira.stocksync.entity.MarketplaceListing;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
+import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import com.erikferreira.stocksync.integration.MarketplaceIntegrationPort;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderDTO;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderItemDTO;
 import com.erikferreira.stocksync.integration.dto.mercadoLivre.MercadoLivreItemResponseDTO;
+import com.erikferreira.stocksync.integration.dto.mercadoLivre.MercadoLivreItemStatusUpdateDTO;
 import com.erikferreira.stocksync.integration.dto.mercadoLivre.MercadoLivreItemUpdateDTO;
 import com.erikferreira.stocksync.integration.dto.mercadoLivre.MercadoLivreOrderItemResponseDTO;
 import com.erikferreira.stocksync.integration.dto.mercadoLivre.MercadoLivreOrderResponseDTO;
@@ -26,6 +28,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.util.List;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
@@ -65,6 +68,30 @@ public class MercadoLivreAdapter implements MarketplaceIntegrationPort {
         } catch (RestClientException ex) {
             throw new MarketplaceIntegrationException(
                     "Failed to update stock for Mercado Livre listing id: " + listingId,
+                    ex
+            );
+        }
+    }
+
+    @Override
+    public void updateListingStatus(String listingId, ListingStatus status, Integer availableQuantity) {
+        validateListingStatusUpdate(status, availableQuantity);
+        String accessToken = getAccessTokenForListing(listingId);
+
+        try {
+            mercadoLivreRestClient
+                    .put()
+                    .uri("/items/{itemId}", listingId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(headers -> headers.setBearerAuth(accessToken))
+                    .body(new MercadoLivreItemStatusUpdateDTO(
+                            status.name().toLowerCase(Locale.ROOT),
+                            availableQuantity))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException ex) {
+            throw new MarketplaceIntegrationException(
+                    "Failed to update status for Mercado Livre listing id: " + listingId,
                     ex
             );
         }
@@ -155,6 +182,21 @@ public class MercadoLivreAdapter implements MarketplaceIntegrationPort {
             );
         }
         return response.availableQuantity();
+    }
+
+    private void validateListingStatusUpdate(ListingStatus status, Integer availableQuantity) {
+        if (status != ListingStatus.ACTIVE && status != ListingStatus.PAUSED) {
+            throw new IllegalArgumentException("Only ACTIVE and PAUSED listing status updates are supported");
+        }
+        if (availableQuantity != null) {
+            validateQuantity(availableQuantity);
+        }
+        if (status == ListingStatus.PAUSED && availableQuantity != null) {
+            throw new IllegalArgumentException("Available quantity must not be sent when pausing a listing");
+        }
+        if (status == ListingStatus.ACTIVE && availableQuantity == null) {
+            throw new IllegalArgumentException("Available quantity is required when activating a listing");
+        }
     }
 
     private String getAccessTokenForListing(String listingId) {

@@ -3,6 +3,7 @@ package com.erikferreira.stocksync.integration.adapter;
 import com.erikferreira.stocksync.entity.MarketplaceListing;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
+import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import com.erikferreira.stocksync.repository.MarketplaceListingRepository;
 import com.erikferreira.stocksync.service.SalesChannelService;
 import com.erikferreira.stocksync.service.TokenRefreshService;
@@ -86,6 +87,54 @@ class MercadoLivreAdapterTest {
         assertThatThrownBy(() -> adapter.updateStock("MLB123", 10))
                 .isInstanceOf(MarketplaceIntegrationException.class)
                 .hasMessageContaining("Failed to update stock");
+    }
+
+    @Test
+    void updateListingStatusShouldPauseWithLowercaseStatus() {
+        mockListingToken();
+        server.expect(requestTo("https://api.mercadolibre.com/items/MLB123"))
+                .andExpect(method(HttpMethod.PUT))
+                .andExpect(header("Authorization", "Bearer access-token"))
+                .andExpect(content().json("{\"status\":\"paused\"}"))
+                .andRespond(withSuccess());
+
+        adapter.updateListingStatus("MLB123", ListingStatus.PAUSED, null);
+
+        server.verify();
+    }
+
+    @Test
+    void updateListingStatusShouldActivateWithCurrentStock() {
+        mockListingToken();
+        server.expect(requestTo("https://api.mercadolibre.com/items/MLB123"))
+                .andExpect(method(HttpMethod.PUT))
+                .andExpect(header("Authorization", "Bearer access-token"))
+                .andExpect(content().json("{\"status\":\"active\",\"available_quantity\":9}"))
+                .andRespond(withSuccess());
+
+        adapter.updateListingStatus("MLB123", ListingStatus.ACTIVE, 9);
+
+        server.verify();
+    }
+
+    @Test
+    void updateListingStatusShouldRejectClosedStatus() {
+        assertThatThrownBy(() -> adapter.updateListingStatus("MLB123", ListingStatus.CLOSED, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only ACTIVE and PAUSED");
+        verify(listingRepository, never())
+                .findByListingIdAndSalesChannelType("MLB123", ChannelType.MERCADO_LIVRE);
+    }
+
+    @Test
+    void updateListingStatusShouldWrapHttpFailure() {
+        mockListingToken();
+        server.expect(requestTo("https://api.mercadolibre.com/items/MLB123"))
+                .andRespond(withServerError());
+
+        assertThatThrownBy(() -> adapter.updateListingStatus("MLB123", ListingStatus.PAUSED, null))
+                .isInstanceOf(MarketplaceIntegrationException.class)
+                .hasMessageContaining("Failed to update status");
     }
 
     @Test

@@ -5,12 +5,14 @@ import com.erikferreira.stocksync.dto.product.ProductInsertDTO;
 import com.erikferreira.stocksync.dto.product.ProductResponseDTO;
 import com.erikferreira.stocksync.dto.product.ProductUpdateDTO;
 import com.erikferreira.stocksync.entity.Product;
+import com.erikferreira.stocksync.event.ProductStatusChangedEvent;
 import com.erikferreira.stocksync.repository.ProductRepository;
 import com.erikferreira.stocksync.service.exceptions.DatabaseException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ public class ProductService {
 
     private final ProductRepository repository;
     private final InventoryService inventoryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public Page<ProductResponseDTO> findAllPaged(Pageable pageable) {
@@ -136,6 +139,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
         entity.setActive(active);
         repository.save(entity);
+        eventPublisher.publishEvent(new ProductStatusChangedEvent(id, active));
     }
 
 }

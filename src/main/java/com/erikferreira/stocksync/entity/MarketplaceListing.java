@@ -37,6 +37,10 @@ public class MarketplaceListing {
     @Column(nullable = false, length = 50)
     private ListingStatus status;
 
+    @Builder.Default
+    @Column(name = "paused_by_product_deactivation", nullable = false)
+    private boolean pausedByProductDeactivation = false;
+
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 }

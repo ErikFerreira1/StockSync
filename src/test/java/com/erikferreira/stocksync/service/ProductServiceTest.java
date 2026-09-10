@@ -5,6 +5,7 @@ import com.erikferreira.stocksync.dto.product.ProductInsertDTO;
 import com.erikferreira.stocksync.dto.product.ProductResponseDTO;
 import com.erikferreira.stocksync.dto.product.ProductUpdateDTO;
 import com.erikferreira.stocksync.entity.Product;
+import com.erikferreira.stocksync.event.ProductStatusChangedEvent;
 import com.erikferreira.stocksync.factory.ProductFactory;
 import com.erikferreira.stocksync.repository.ProductRepository;
 import com.erikferreira.stocksync.service.exceptions.DatabaseException;
@@ -16,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -44,6 +46,9 @@ class ProductServiceTest {
 
     @Mock
     private InventoryService inventoryService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ProductService service;
@@ -299,6 +304,7 @@ class ProductServiceTest {
         assertThat(product.isActive()).isTrue();
         verify(repository).findById(existingId);
         verify(repository).save(product);
+        verify(eventPublisher).publishEvent(new ProductStatusChangedEvent(existingId, true));
     }
 
     @Test
@@ -324,6 +330,7 @@ class ProductServiceTest {
         assertThat(product.isActive()).isFalse();
         verify(repository).findById(existingId);
         verify(repository).save(product);
+        verify(eventPublisher).publishEvent(new ProductStatusChangedEvent(existingId, false));
     }
 
     @Test

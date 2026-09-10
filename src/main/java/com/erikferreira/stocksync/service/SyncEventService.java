@@ -104,6 +104,31 @@ public class SyncEventService {
         ));
     }
 
+    @Transactional
+    public void registerListingStatusSuccess(Long productId, Long salesChannelId) {
+        registerEvent(new SyncEventInsertDTO(
+                productId,
+                salesChannelId,
+                null,
+                null,
+                SyncStatus.SUCCESS,
+                null));
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registerListingStatusFailure(
+            Long productId,
+            Long salesChannelId,
+            RuntimeException exception) {
+        registerEvent(new SyncEventInsertDTO(
+                productId,
+                salesChannelId,
+                null,
+                null,
+                SyncStatus.FAILURE,
+                safeErrorMessage(exception)));
+    }
+
     // helpers
 
     private void validateStatusConsistency(SyncEventInsertDTO dto) {
