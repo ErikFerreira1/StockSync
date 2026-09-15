@@ -7,6 +7,7 @@ import com.erikferreira.stocksync.service.IntegrationCredentialService;
 import com.erikferreira.stocksync.service.OAuthStateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
@@ -24,6 +25,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.Instant;
 
 @RestController
+@Profile("!demo")
 @RequiredArgsConstructor
 public class MercadoLivreAuthController {
 

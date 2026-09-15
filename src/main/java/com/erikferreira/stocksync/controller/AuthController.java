@@ -4,6 +4,7 @@ import com.erikferreira.stocksync.dto.auth.LoginRequestDTO;
 import com.erikferreira.stocksync.dto.auth.LoginResponseDTO;
 import com.erikferreira.stocksync.service.AuthService;
 import com.erikferreira.stocksync.service.LoginRateLimiter;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,10 @@ public class AuthController {
     private final LoginRateLimiter loginRateLimiter;
 
     @PostMapping("/login")
+    @Operation(
+            summary = "Authenticate with a StockSync account",
+            description = "In demo mode, use the credentials documented in the project README.",
+            security = {})
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequestDTO,
                                                 HttpServletRequest request) {
         long retryAfter = loginRateLimiter.tryAcquire(request.getRemoteAddr());

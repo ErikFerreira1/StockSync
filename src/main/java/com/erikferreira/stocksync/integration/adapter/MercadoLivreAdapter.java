@@ -23,6 +23,7 @@ import com.erikferreira.stocksync.service.exceptions.MarketplaceIntegrationExcep
 import com.erikferreira.stocksync.service.exceptions.MarketplaceListingNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
+@Profile("!demo")
 @RequiredArgsConstructor
 public class MercadoLivreAdapter implements MarketplaceIntegrationPort {
 
