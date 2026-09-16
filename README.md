@@ -27,6 +27,19 @@ Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atual
 
 ## Teste o projeto
 
+### Demo online
+
+**[Abrir o Swagger da demo](https://vividness-gratuity-foothold.ngrok-free.dev/swagger-ui.html)** — experimente a API sem instalar o projeto.
+
+1. Se o ngrok exibir uma tela inicial, clique em **Visit Site** para continuar.
+2. Execute `POST /auth/login` com usuário `demo` e senha `stocksync-demo`.
+3. Copie o `accessToken` da resposta e cole em **Authorize**.
+4. Consulte `GET /products` para ver os produtos de exemplo. O roteiro completo de movimentação e sincronização está na seção **Modo demo** abaixo.
+
+A demo é compartilhada, usa dados fictícios e simula o Mercado Livre. Os registros de exemplo são restaurados na inicialização. Hospedada em um celular Android com Termux, Java e PostgreSQL, ela pode ficar indisponível durante manutenção ou ao atingir os limites do túnel gratuito. Se estiver offline, execute localmente com Docker.
+
+### Execução local
+
 Com Docker e Docker Compose disponíveis, execute na pasta do projeto:
 
 ```bash
@@ -41,9 +54,8 @@ A demonstração já prepara dois produtos e anúncios simulados. Consulte o cat
 
 - **Outros marketplaces:** novos adaptadores para ampliar a gestão centralizada entre plataformas.
 - **Interface web:** telas para acompanhar produtos, estoque, pedidos, anúncios e sincronizações.
-- **Demo hospedada:** acesso por link para experimentar sem instalação local.
 
-Esses recursos estão planejados. Hoje, o projeto é acessado pela API/Swagger, a demo roda localmente e a integração real disponível é com o Mercado Livre.
+Esses recursos estão planejados. Hoje, o projeto é acessado pela API/Swagger, com demo online e execução local disponíveis. A integração real disponível é com o Mercado Livre.
 
 ---
 
@@ -327,3 +339,4 @@ Inicie a classe `StockSyncApplication` ou execute:
 As chaves e senhas padrão do Compose são destinadas à demonstração local. Substitua-as antes de hospedar a aplicação ou conectar contas reais. Não versione `.env`, tokens ou segredos de integração.
 
 </details>
+
