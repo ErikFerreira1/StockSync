@@ -91,11 +91,23 @@ class DemoDataBootstrap implements ApplicationRunner {
             return;
         }
 
-        user.setPasswordHash(passwordEncoder.encode(demoPassword));
-        user.setRole(UserRole.OPERATOR);
-        user.setActive(true);
-        user.setAuthVersion(user.getAuthVersion() + 1);
-        userRepository.save(user);
+        boolean securityChanged = false;
+        if (!passwordEncoder.matches(demoPassword, user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(demoPassword));
+            securityChanged = true;
+        }
+        if (user.getRole() != UserRole.OPERATOR) {
+            user.setRole(UserRole.OPERATOR);
+            securityChanged = true;
+        }
+        if (!user.isActive()) {
+            user.setActive(true);
+            securityChanged = true;
+        }
+        if (securityChanged) {
+            user.setAuthVersion(user.getAuthVersion() + 1);
+            userRepository.save(user);
+        }
     }
 
     private SalesChannel resetDemoChannel() {

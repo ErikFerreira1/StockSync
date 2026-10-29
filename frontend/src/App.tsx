@@ -58,6 +58,15 @@ export default function App() {
     return () => window.removeEventListener('popstate', syncScreen)
   }, [])
   useEffect(() => {
+    const expireSession = () => {
+      setToken(null)
+      setUser(null)
+      setError('Sua sessão expirou. Entre novamente para continuar.')
+    }
+    window.addEventListener('stocksync:unauthorized', expireSession)
+    return () => window.removeEventListener('stocksync:unauthorized', expireSession)
+  }, [])
+  useEffect(() => {
     if (!error) return
     const timeout = window.setTimeout(() => setError(''), 4500)
     return () => window.clearTimeout(timeout)
@@ -146,7 +155,7 @@ export default function App() {
       setDetailProduct(current=>current?.id===editingProduct.id?{...current,...updatedProduct,availableQuantity:Number(form.get('availableQuantity'))}:current)
       setEditingProduct(null); setError('Produto atualizado.'); await refresh()
     } catch (cause) {
-      const reason = cause instanceof ApiError ? cause.message : 'Confira os dados e sua permissão.'
+      const reason = cause instanceof ApiError ? (cause.status === 401 ? 'Sua sessão expirou. Entre novamente.' : cause.message) : 'Confira os dados e sua permissão.'
       setError(`Não foi possível atualizar o produto. ${reason}`)
     }
     finally { setSavingProduct(false) }
