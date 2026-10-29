@@ -35,6 +35,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const message = body?.message ?? body?.error ?? `Erro na requisição (${response.status})`
     if (response.status === 401) {
       clearToken()
+      window.dispatchEvent(new Event('stocksync:unauthorized'))
     }
     throw new ApiError(response.status, message)
   }
