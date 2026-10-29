@@ -62,6 +62,10 @@ export function getLoginError(error: unknown) {
 export const api = {
   products: () => request<Page<Product>>('/products?size=100&sort=name,asc'),
   product: (id: number) => request<Product>(`/products/${id}`),
+  updateProduct: (id: number, product: { name: string; description: string; basePrice: number }) =>
+    request<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(product) }),
+  setProductActive: (id: number, active: boolean) =>
+    request<void>(`/products/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'PATCH' }),
   inventory: (id: number) => request<{ availableQuantity: number; minQuantity: number }>(`/inventory/${id}`),
   movements: (id: number) => request<Page<StockMovement>>(`/stock-movement/product/${id}?size=10&sort=occurredAt,desc`),
   failedSyncs: () => request<Page<SyncEvent>>('/sync-events/failed?size=10&sort=occurredAt,desc'),
