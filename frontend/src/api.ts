@@ -1,6 +1,6 @@
 import type { LoginResponse, Page, Product, StockMovement, SyncEvent } from './types'
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
 
 export class ApiError extends Error {
