@@ -6,8 +6,11 @@ import com.erikferreira.stocksync.dto.inventory.StockRequestDTO;
 import com.erikferreira.stocksync.dto.inventory.UpdateMinQuantityDTO;
 import com.erikferreira.stocksync.entity.Inventory;
 import com.erikferreira.stocksync.entity.Product;
+import com.erikferreira.stocksync.entity.StockMovement;
+import com.erikferreira.stocksync.entity.enums.MovementType;
 import com.erikferreira.stocksync.event.StockChangedEvent;
 import com.erikferreira.stocksync.repository.InventoryRepository;
+import com.erikferreira.stocksync.repository.StockMovementRepository;
 import com.erikferreira.stocksync.service.exceptions.InsufficientStockException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
@@ -28,6 +31,7 @@ import java.util.List;
 public class InventoryService {
 
     private final InventoryRepository repository;
+    private final StockMovementRepository stockMovementRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
@@ -87,16 +91,38 @@ public class InventoryService {
 
     @Transactional
     public void adjustStock(@Valid AdjustStockDTO request) {
+        adjustStockAndReturnDelta(request);
+    }
+
+    @Transactional
+    public int adjustStockAndReturnDelta(@Valid AdjustStockDTO request) {
         Inventory inventory = findInventoryForUpdateOrThrow(request.productId());
         Integer currentQuantity = inventory.getAvailableQuantity();
         Integer newQuantity = request.quantity();
 
         if (currentQuantity.equals(newQuantity)) {
             log.info("No adjustment needed for product {}: current stock = {}", request.productId(), currentQuantity);
-            return;
+            return 0;
         }
 
         applyNewQuantity(inventory, newQuantity, "adjust");
+        return newQuantity - currentQuantity;
+    }
+
+    @Transactional
+    public void adjustStockWithHistory(@Valid AdjustStockDTO request) {
+        int difference = adjustStockAndReturnDelta(request);
+        if (difference == 0) return;
+
+        Inventory inventory = findInventoryOrThrow(request.productId());
+        StockMovement movement = StockMovement.builder()
+                .product(inventory.getProduct())
+                .quantity(Math.abs(difference))
+                .type(difference > 0 ? MovementType.MANUAL_INCREASE : MovementType.MANUAL_DECREASE)
+                .note("Ajuste de quantidade feito na edição do produto")
+                .occurredAt(Instant.now())
+                .build();
+        stockMovementRepository.save(movement);
     }
 
     @Transactional

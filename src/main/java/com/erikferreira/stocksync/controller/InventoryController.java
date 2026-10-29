@@ -37,7 +37,7 @@ public class InventoryController {
     public ResponseEntity<InventoryResponseDTO> updateAvailableQuantity(
             @PathVariable Long productId,
             @Valid @RequestBody AdjustStockDTO dto) {
-        service.adjustStock(new AdjustStockDTO(productId, dto.quantity()));
+        service.adjustStockWithHistory(new AdjustStockDTO(productId, dto.quantity()));
         return ResponseEntity.ok(service.findByProduct(productId));
     }
 
