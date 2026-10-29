@@ -33,7 +33,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body = await response.json().catch(() => null)
   if (!response.ok) {
     const message = body?.message ?? body?.error ?? `Erro na requisição (${response.status})`
-    if (response.status === 401) clearToken()
+    if (response.status === 401) {
+      clearToken()
+    }
     throw new ApiError(response.status, message)
   }
   return body as T
@@ -46,6 +48,15 @@ export async function login(username: string, password: string) {
   })
   localStorage.setItem(TOKEN_KEY, result.accessToken)
   return result
+}
+
+export function getLoginError(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.status === 403) return 'Usuário ou senha incorretos.'
+    if (error.status === 429) return 'Muitas tentativas. Aguarde um pouco e tente novamente.'
+    return 'A API não conseguiu concluir o login. Tente novamente.'
+  }
+  return 'Não foi possível conectar à API. Confirme que o StockSync está em execução.'
 }
 
 export const api = {

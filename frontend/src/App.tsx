@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { login, clearToken, getToken, api } from './api'
+import { login, clearToken, getToken, api, getLoginError } from './api'
 import type { User, Product, Inventory, StockMovement, SyncEvent } from './types'
 
 type Screen = 'dashboard' | 'products' | 'movements' | 'sync'
@@ -36,7 +36,7 @@ export default function App() {
     event.preventDefault(); setError(''); setBusyLogin(true)
     const form = new FormData(event.currentTarget)
     try { const result = await login(String(form.get('username')), String(form.get('password'))); setToken(result.accessToken); setUser(result.user) }
-    catch { setError('Usuário ou senha inválidos.') } finally { setBusyLogin(false) }
+    catch (cause) { setError(getLoginError(cause)) } finally { setBusyLogin(false) }
   }
   async function submitMovement(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!selected) return
@@ -44,7 +44,7 @@ export default function App() {
     try { await api.moveStock(selected.id, Number(form.get('quantity')), movement, String(form.get('note') || '')); setSelected(null); await refresh() }
     catch { setError('Não foi possível registrar a movimentação.') }
   }
-  if (!token) return <main className="login-page"><form className="login-card" onSubmit={submitLogin}><div className="brand-mark">SS</div><p className="eyebrow">STOCKSYNC</p><h1>Acesse sua conta</h1><p className="login-copy">Entre para acompanhar seu estoque e seus anúncios.</p><label>Usuário<input name="username" autoComplete="username" required/></label><label>Senha<input name="password" type="password" autoComplete="current-password" required/></label>{error && <p className="form-error">{error}</p>}<button className="primary" disabled={busyLogin}>{busyLogin ? 'Entrando…' : 'Entrar'}</button><p className="login-footnote">Gestão simples, estoque em dia.</p></form><div className="login-aside"><h2>Seu estoque,<br/>sempre em sincronia.</h2></div></main>
+  if (!token) return <main className="login-page"><form className="login-card" onSubmit={submitLogin}><div className="brand-mark">SS</div><p className="eyebrow">STOCKSYNC</p><h1>Acesse sua conta</h1><p className="login-copy">Entre para acompanhar seu estoque e seus anúncios.</p><label>Usuário<input name="username" autoComplete="username" placeholder="Ex.: demo" required/></label><label>Senha<input name="password" type="password" autoComplete="current-password" placeholder="Sua senha" required/></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="primary" disabled={busyLogin}>{busyLogin ? 'Entrando…' : 'Entrar'}</button><p className="login-footnote">Gestão simples, estoque em dia.</p></form><div className="login-aside"><h2>Seu estoque,<br/>sempre em sincronia.</h2></div></main>
   const low = data.products.filter(p => p.active && (p.availableQuantity ?? 0) <= (data.stock.get(p.id)?.minQuantity ?? 0))
   const title = ({ dashboard: 'Visão geral', products: 'Produtos', movements: 'Movimentações', sync: 'Sincronizações' })[screen]
   return <main className="workspace"><aside className="sidebar"><div className="logo">▦ <b>stock<span>sync</span></b></div><p>MENU PRINCIPAL</p>{(['dashboard','products','movements','sync'] as Screen[]).map(s=><button className={screen===s?'selected':''} onClick={()=>setScreen(s)} key={s}>{({dashboard:'◫  Visão geral',products:'□  Produtos',movements:'↕  Movimentações',sync:'◉  Sincronizações'})[s]}</button>)}<footer><span>{user?.username ?? 'Operador'}</span><button onClick={()=>{clearToken();setToken(null)}}>Sair</button></footer></aside><section className="main"><header><span>StockSync　/　{title}</span><span className="user">{user?.username ?? 'demo'}</span></header><div className="page"><p className="date">GESTÃO DE ESTOQUE</p><h1>{screen==='dashboard'?'Bom dia 👋':title}</h1><p className="muted">{screen==='dashboard'?'Aqui está o resumo do seu estoque hoje.':'Consulte e gerencie as informações do seu estoque.'}</p>{error&&<p className="form-error">{error}</p>}
