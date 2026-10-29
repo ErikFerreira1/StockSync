@@ -55,3 +55,64 @@ td{height:54px;font-size:13px}
 .overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:#1d2b2e75}.dialog{position:relative;width:min(100%,510px);padding:24px;border:1px solid #dce4e4;border-radius:5px;background:#fff;box-shadow:0 18px 60px #18282a30}.review-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}.review-top h2{font-size:20px}.close{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:3px;background:transparent;color:#748184}.close:hover{background:#f1f4f4}.review-item{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid #e2e9e9;border-radius:4px;background:#f8fafa}.review-item>span:nth-child(2){flex:1;min-width:0}.review-caption{margin:22px 0 4px;color:#738083;font-size:11px}.current-quantity{display:flex;align-items:baseline;gap:8px;padding-bottom:17px;border-bottom:1px solid #e9eeee;color:#263238;font:700 32px Manrope,sans-serif;font-variant-numeric:tabular-nums}.current-quantity span{color:#7b888b;font:400 11px 'DM Sans',sans-serif}.review-fields{display:grid;grid-template-columns:1.4fr .6fr;gap:12px;margin-top:17px}.review-fields label,.note-field{display:flex;flex-direction:column;gap:7px;color:#435155;font-size:11px;font-weight:600}.review-fields input,.review-fields select,.note-field input{width:100%;height:40px;font-size:12px;font-weight:400}.result-preview{display:flex;align-items:center;justify-content:space-between;margin-top:17px;padding:13px 14px;border:1px solid #c9e3df;border-radius:4px;background:#f1f8f7}.result-preview>span{color:#506367;font-size:11px}.result-preview>b{color:#087f78;font:700 19px Manrope,sans-serif;font-variant-numeric:tabular-nums}.result-preview small{color:#63827e;font:400 10px 'DM Sans',sans-serif}.note-field{margin-top:18px}.note-field>span{color:#8a9698;font-size:9px;font-weight:400}.review-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}.review-actions .primary,.review-actions .filter-button{height:38px;font-size:11px}
 @media(max-width:1100px){.sidebar{width:220px}.main{margin-left:220px}.page{padding-right:20px;padding-left:20px}.stock-toolbar{align-items:flex-start;flex-direction:column}.stock-controls{width:100%}.search-box{flex:1}.stats{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}}
 @media(max-width:700px){.sidebar{position:static;width:auto;height:auto;display:flex;flex-direction:row;align-items:center;gap:4px;padding:8px;border-right:0;border-bottom:1px solid #dce3e3}.logo{height:34px;margin:0 auto 0 2px;padding:0 4px}.logo-symbol{width:27px;height:27px}.logo b{font-size:14px}.workspace-context,.sidebar>p{display:none}.sidebar>button{width:35px;height:33px;justify-content:center;gap:0;margin:0;padding:0;font-size:0}.sidebar>button svg{width:17px;height:17px}.side-badge{display:none}.sidebar footer{width:auto;margin:0;padding:0;border:0}.sidebar footer>span,.sidebar footer>button{display:none}.account-avatar{width:28px;height:28px}.main{margin:0}.main>header{height:46px;padding:0 13px}.page{padding:20px 12px 28px}.page-title-row{align-items:flex-start}.page h1{font-size:22px}.muted{font-size:11px;line-height:1.5}.api-indicator{font-size:0}.api-indicator i{width:7px;height:7px}.stats{gap:8px;margin-top:14px}.stat{min-height:77px;padding:11px;font-size:10px}.stat b{font-size:20px}.stock-toolbar{gap:12px;padding:13px 12px}.stock-controls{flex-wrap:wrap}.search-box{flex-basis:100%}.stock-controls .filter-button,.stock-controls .primary{flex:1}.stock-table{min-width:810px}.stock-table td{height:55px}.table-summary{font-size:8px}.login-page{display:flex;padding:0}.login-card{padding:35px 25px}.login-aside{display:none}.review-fields{grid-template-columns:1fr 100px}}
+
+/* Readability pass: larger type while keeping the inventory layout compact */
+.sidebar>p{font-size:11px}
+.sidebar>button{font-size:14px}
+.sidebar footer b{font-size:13px}
+.sidebar footer small{font-size:11px}
+.main>header{font-size:13px}
+.api-indicator{font-size:12px}
+.page h1{font-size:30px}
+.date{font-size:11px}
+.muted{font-size:14px}
+.refresh-button,.filter-button{height:38px;font-size:13px}
+.stat{font-size:13px}
+.stat b{font-size:27px}
+.stock-toolbar h2{font-size:16px}
+.stock-toolbar p{font-size:12px}
+.search-box{height:38px;width:270px}
+.search-box input{height:34px;font-size:13px}
+.search-box kbd{font-size:10px}
+.stock-controls>.filter-button,.stock-controls>.primary{height:38px;font-size:13px}
+.stock-table th{height:42px;font-size:10px}
+.stock-table td{height:68px;font-size:13px}
+.item-glyph{width:35px;height:35px}
+.item-link b,.review-item b{font-size:13px}
+.item-link small,.review-item small{font-size:11px}
+.code-cell{font-size:12px!important}
+.unit-label{font-size:11px}
+.low-label{font-size:11px}
+.minimum-warning{font-size:13px}
+.status-chip{font-size:11px}
+.row-adjust{font-size:12px!important}
+.table-summary{font-size:11px}
+.no-results{font-size:14px}
+.no-results span{font-size:12px}
+.product-line{font-size:13px}
+.product-line small{font-size:11px}
+.activity{font-size:12px}
+.primary{height:39px;font-size:13px}
+.review-top h2{font-size:22px}
+.review-caption,.result-preview>span{font-size:13px}
+.current-quantity{font-size:36px}
+.review-fields label,.note-field{font-size:13px}
+.review-fields input,.review-fields select,.note-field input{height:44px;font-size:14px}
+.result-preview>b{font-size:21px}
+.review-actions .primary,.review-actions .filter-button{height:42px;font-size:13px}
+@media(max-width:700px){
+  .sidebar>button{font-size:0}
+  .page h1{font-size:25px}
+  .muted{font-size:12px}
+  .stock-toolbar h2{font-size:15px}
+  .stock-toolbar p{font-size:11px}
+  .stock-table th{font-size:9px}
+  .stock-table td{font-size:12px}
+  .item-link b,.review-item b{font-size:12px}
+  .item-link small,.review-item small{font-size:10px}
+  .table-summary{font-size:9px}
+  .stat{font-size:11px}
+  .stat b{font-size:23px}
+  .product-line{font-size:12px}
+  .activity{font-size:11px}
+}
