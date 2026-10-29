@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, AlertTriangle, ArrowUpFromLine, ArrowDownToLine, Bell, Boxes, ChevronDown, ChevronRight, LayoutDashboard, LogOut, Package, Search, Settings2, X, Pencil, Power } from 'lucide-react'
-import { login, clearToken, getToken, api, getLoginError } from './api'
+import { login, clearToken, getToken, api, getLoginError, ApiError } from './api'
 import type { User, Product, Inventory, StockMovement, SyncEvent } from './types'
 
 type Screen = 'dashboard' | 'products' | 'movements' | 'sync' | 'product-detail'
@@ -140,14 +140,15 @@ export default function App() {
     const form = new FormData(event.currentTarget)
     setSavingProduct(true)
     try {
-      const [updatedProduct] = await Promise.all([
-        api.updateProduct(editingProduct.id, { sku: String(form.get('sku')), name: String(form.get('name')), description: String(form.get('description') || ''), basePrice: Number(form.get('basePrice')) }),
-        api.updateMinQuantity(editingProduct.id, Number(form.get('minQuantity'))),
-        api.updateAvailableQuantity(editingProduct.id, Number(form.get('availableQuantity'))),
-      ])
+      const updatedProduct = await api.updateProduct(editingProduct.id, { sku: String(form.get('sku')), name: String(form.get('name')), description: String(form.get('description') || ''), basePrice: Number(form.get('basePrice')) })
+      await api.updateMinQuantity(editingProduct.id, Number(form.get('minQuantity')))
+      await api.updateAvailableQuantity(editingProduct.id, Number(form.get('availableQuantity')))
       setDetailProduct(current=>current?.id===editingProduct.id?{...current,...updatedProduct,availableQuantity:Number(form.get('availableQuantity'))}:current)
       setEditingProduct(null); setError('Produto atualizado.'); await refresh()
-    } catch { setError('Não foi possível atualizar o produto. Confira os dados e sua permissão.') }
+    } catch (cause) {
+      const reason = cause instanceof ApiError ? cause.message : 'Confira os dados e sua permissão.'
+      setError(`Não foi possível atualizar o produto. ${reason}`)
+    }
     finally { setSavingProduct(false) }
   }
   async function setSelectedProductsActive(active: boolean) {
