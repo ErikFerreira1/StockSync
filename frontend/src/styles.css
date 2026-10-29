@@ -239,7 +239,7 @@ td{height:54px;font-size:13px}
 .detail-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:19px 21px;border:1px solid #e0e7e7;border-radius:4px;background:#fff}
 .detail-heading h2{margin:0;color:#263238;font:700 24px Manrope,sans-serif}
 .detail-heading p:last-child{margin:7px 0 0;color:#788689;font-size:13px}
-.detail-heading-actions{display:flex;align-items:center;gap:10px;flex:none;margin-top:11px}
+.detail-heading-actions{display:flex;align-items:center;gap:10px;flex:none;margin-top:0}
 .detail-heading-info{min-width:0}
 .detail-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .detail-stats article{min-height:86px;display:flex;flex-direction:column;justify-content:center;gap:9px;padding:13px 16px;border:1px solid #e0e7e7;border-radius:4px;background:#fff}
