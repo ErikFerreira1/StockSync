@@ -149,3 +149,16 @@ td{height:54px;font-size:13px}
 .edit-field input{width:100%;height:41px;font-size:13px;font-weight:400}
 @media(max-width:1200px){.stock-table{min-width:1050px}}
 @media(max-width:700px){.stock-table{min-width:1110px}.product-actions button{height:32px;font-size:12px}}
+
+.stock-controls>.primary:disabled{border-color:#9abcb8;background:#9abcb8;color:#fff;opacity:.8;cursor:not-allowed}
+.stock-table td input[type=checkbox],.stock-table th input[type=checkbox]{cursor:pointer}
+.batch-dialog{max-height:min(90vh,760px);overflow:auto}
+.batch-preview-list{max-height:250px;overflow:auto;margin:17px 0;border:1px solid #e3e9e9;border-radius:4px}
+.batch-preview-row{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 11px;border-bottom:1px solid #edf1f1;color:#536265;font-size:12px}
+.batch-preview-row:last-child{border-bottom:0}
+.batch-preview-row>span:first-child{min-width:0;display:flex;flex-direction:column;gap:3px}
+.batch-preview-row b{overflow:hidden;color:#354448;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.batch-preview-row small{color:#889496;font:10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.batch-preview-row>span:last-child{flex:none;font-variant-numeric:tabular-nums}
+.batch-preview-row i{padding:0 4px;color:#087f78;font-style:normal}
+@media(max-width:700px){.batch-preview-list{max-height:35vh}.batch-preview-row{font-size:11px}}
