@@ -1,6 +1,7 @@
 package com.erikferreira.stocksync.controller;
 
 import com.erikferreira.stocksync.dto.inventory.InventoryResponseDTO;
+import com.erikferreira.stocksync.dto.inventory.AdjustStockDTO;
 import com.erikferreira.stocksync.dto.inventory.UpdateMinQuantityDTO;
 import com.erikferreira.stocksync.service.InventoryService;
 import jakarta.validation.Valid;
@@ -30,6 +31,14 @@ public class InventoryController {
     @PatchMapping("/product/{productId}/min-quantity")
     public ResponseEntity<InventoryResponseDTO> updateMinQuantity(@PathVariable Long productId, @Valid @RequestBody UpdateMinQuantityDTO dto) {
         return ResponseEntity.ok(service.updateMinQuantity(productId, dto));
+    }
+
+    @PatchMapping("/product/{productId}/quantity")
+    public ResponseEntity<InventoryResponseDTO> updateAvailableQuantity(
+            @PathVariable Long productId,
+            @Valid @RequestBody AdjustStockDTO dto) {
+        service.adjustStock(new AdjustStockDTO(productId, dto.quantity()));
+        return ResponseEntity.ok(service.findByProduct(productId));
     }
 
 
