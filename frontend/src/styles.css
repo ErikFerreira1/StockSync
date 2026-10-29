@@ -116,3 +116,20 @@ td{height:54px;font-size:13px}
   .product-line{font-size:12px}
   .activity{font-size:11px}
 }
+
+/* Make the product identity explicit in every stock movement */
+.movement-activity{align-items:center;gap:12px}
+.movement-summary{min-width:0;display:flex;flex:1;flex-direction:column;gap:3px}
+.movement-summary>b{color:#59696c;font-size:11px;font-weight:600}
+.movement-summary>span{overflow:hidden;color:#344246;font-size:13px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.movement-summary>small{color:#809092;font:10px ui-monospace,SFMono-Regular,Menlo,monospace}
+.movement-amount{flex:none;color:#526467;font-size:12px;font-variant-numeric:tabular-nums}
+.movement-history .card-head{margin-bottom:14px}
+.movement-history .card-head .muted{margin-top:5px;font-size:12px}
+.movement-kind{display:inline-flex;padding:5px 8px;border:1px solid #dce5e5;border-radius:3px;font-size:11px}
+.movement-kind.incoming{border-color:#c8e3df;background:#f1f8f7;color:#087f78}
+.movement-kind.outgoing{border-color:#eddbcd;background:#fbf5ef;color:#a86a3b}
+.movement-product{color:#344246;font-size:13px;font-weight:600}
+.movement-in{color:#087f78!important;font-size:13px!important;font-weight:600;font-variant-numeric:tabular-nums}
+.movement-out{color:#a86a3b!important;font-size:13px!important;font-weight:600;font-variant-numeric:tabular-nums}
+@media(max-width:700px){.movement-summary>span{font-size:12px}.movement-amount{font-size:11px}.movement-history .card-head{align-items:flex-start}.movement-history .card-head .muted{font-size:10px}}
