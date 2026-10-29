@@ -116,7 +116,9 @@ public class ProductService {
     }
 
     private void copyUpdateDtoToEntity(ProductUpdateDTO dto, Product entity) {
-        // sem sku
+        if (dto.sku() != null && !dto.sku().isBlank()) {
+            entity.setSku(dto.sku());
+        }
         entity.setName(dto.name());
         entity.setDescription(dto.description());
         entity.setBasePrice(dto.basePrice());
