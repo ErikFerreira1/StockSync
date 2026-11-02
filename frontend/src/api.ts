@@ -1,4 +1,4 @@
-import type { ChannelType, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
+import type { ChannelType, DemoMarketplaceListing, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
@@ -90,8 +90,9 @@ export const api = {
   updateAvailableQuantity: (id: number, quantity: number) =>
     request<{ availableQuantity: number; minQuantity: number }>(`/inventory/product/${id}/quantity`, { method: 'PATCH', body: JSON.stringify({ productId: id, quantity }) }),
   movements: (id: number) => request<Page<StockMovement>>(`/stock-movement/product/${id}?size=10&sort=occurredAt,desc`),
-  failedSyncs: () => request<Page<SyncEvent>>('/sync-events/failed?size=10&sort=occurredAt,desc'),
-  productSyncs: (id: number) => request<Page<SyncEvent>>(`/sync-events/product/${id}?size=10&sort=occurredAt,desc`),
+  failedSyncs: () => request<Page<SyncEvent>>('/sync-events/failed?size=10&sort=timestamp,desc'),
+  productSyncs: (id: number) => request<Page<SyncEvent>>(`/sync-events/product/${id}?size=10&sort=timestamp,desc`),
+  demoMarketplaceListings: () => request<DemoMarketplaceListing[]>('/demo/marketplace-listings'),
   moveStock: (productId: number, quantity: number, type: 'MANUAL_INCREASE' | 'MANUAL_DECREASE', note: string) =>
     request<StockMovement>('/stock-movement', {
       method: 'POST',

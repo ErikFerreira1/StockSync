@@ -70,6 +70,15 @@ export type SalesChannel = {
 }
 
 export type ListingStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED' | 'CLOSED'
+export type DemoMarketplaceListing = {
+  listingId: string
+  productId: number
+  title: string
+  price: number
+  availableQuantity: number
+  status: ListingStatus
+  updatedAt: string
+}
 export type MarketplaceListing = {
   id: number
   productId: number

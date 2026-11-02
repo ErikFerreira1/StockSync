@@ -276,3 +276,9 @@ td{height:54px;font-size:13px}
 .create-product-button{flex:none;white-space:nowrap}
 .product-edit-dialog select{width:100%;height:43px;padding:0 10px;border:1px solid #dce3e3;border-radius:4px;background:#fff;color:#344246;font:14px 'DM Sans',sans-serif}
 @media(max-width:700px){.domain-card-head{align-items:flex-start;flex-direction:column}.domain-card-head>.primary{width:100%}.stock-controls>.create-product-button{flex:1}.sidebar>button{font-size:0}}
+.demo-link-button{padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit}
+.demo-listing-detail{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.demo-listing-detail>div{min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:12px;border:1px solid #e0e7e7;border-radius:4px;background:#fbfcfc}
+.demo-listing-detail>div>span{color:#788689;font-size:12px}
+.demo-listing-detail>div>b{color:#344246;font-size:14px}
+@media(max-width:700px){.demo-listing-detail{grid-template-columns:repeat(2,minmax(0,1fr))}}
