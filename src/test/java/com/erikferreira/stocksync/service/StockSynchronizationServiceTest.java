@@ -38,13 +38,14 @@ class StockSynchronizationServiceTest {
         first = MarketplaceListing.builder().id(3L).product(product).salesChannel(channel)
                 .listingId("MLB1").status(ListingStatus.ACTIVE).build();
         second = MarketplaceListing.builder().id(4L).product(product).salesChannel(channel)
-                .listingId("MLB2").status(ListingStatus.ACTIVE).build();
+                .listingId("MLB2").status(ListingStatus.PAUSED).build();
     }
 
     @Test
-    void synchronizeProductStockShouldProcessEveryActiveListing() {
+    void synchronizeProductStockShouldProcessEveryActiveOrPausedListing() {
         when(inventoryService.getAvailableQuantity(1L)).thenReturn(25);
-        when(listingRepository.findByProductIdAndStatusAndSalesChannelActiveTrue(1L, ListingStatus.ACTIVE))
+        when(listingRepository.findByProductIdAndStatusInAndSalesChannelActiveTrue(
+                1L, List.of(ListingStatus.ACTIVE, ListingStatus.PAUSED)))
                 .thenReturn(List.of(first, second));
 
         service.synchronizeProductStock(1L);
@@ -56,7 +57,8 @@ class StockSynchronizationServiceTest {
     @Test
     void synchronizeProductStockShouldRegisterFailureAndContinue() {
         when(inventoryService.getAvailableQuantity(1L)).thenReturn(25);
-        when(listingRepository.findByProductIdAndStatusAndSalesChannelActiveTrue(1L, ListingStatus.ACTIVE))
+        when(listingRepository.findByProductIdAndStatusInAndSalesChannelActiveTrue(
+                1L, List.of(ListingStatus.ACTIVE, ListingStatus.PAUSED)))
                 .thenReturn(List.of(first, second));
         RuntimeException failure = new RuntimeException("marketplace failed");
         doThrow(failure).when(processor).synchronizeListing(first, 25);
@@ -70,7 +72,8 @@ class StockSynchronizationServiceTest {
     @Test
     void synchronizeProductStockShouldSwallowFailureEventError() {
         when(inventoryService.getAvailableQuantity(1L)).thenReturn(25);
-        when(listingRepository.findByProductIdAndStatusAndSalesChannelActiveTrue(1L, ListingStatus.ACTIVE))
+        when(listingRepository.findByProductIdAndStatusInAndSalesChannelActiveTrue(
+                1L, List.of(ListingStatus.ACTIVE, ListingStatus.PAUSED)))
                 .thenReturn(List.of(first));
         RuntimeException failure = new RuntimeException("marketplace failed");
         doThrow(failure).when(processor).synchronizeListing(first, 25);

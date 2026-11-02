@@ -22,12 +22,12 @@ public class StockSynchronizationService {
     public void synchronizeProductStock(Long productId) {
         Integer quantity = inventoryService.getAvailableQuantity(productId);
 
-        List<MarketplaceListing> activeListings =
-                listingRepository.findByProductIdAndStatusAndSalesChannelActiveTrue(
+        List<MarketplaceListing> synchronizedListings =
+                listingRepository.findByProductIdAndStatusInAndSalesChannelActiveTrue(
                         productId,
-                        ListingStatus.ACTIVE);
+                        List.of(ListingStatus.ACTIVE, ListingStatus.PAUSED));
 
-        for (MarketplaceListing listing : activeListings) {
+        for (MarketplaceListing listing : synchronizedListings) {
             try {
                 processor.synchronizeListing(listing, quantity);
             } catch (RuntimeException exception) {

@@ -122,6 +122,12 @@ export default function App() {
   }, [token])
   useEffect(() => { void refresh() }, [refresh])
   useEffect(() => {
+    if (screen !== 'demo-marketplace' || !token) return
+    api.demoMarketplaceListings()
+      .then(demoListings => setData(current => ({ ...current, demoListings, demoMode: true })))
+      .catch(() => setError('Não foi possível atualizar os anúncios do marketplace simulado.'))
+  }, [screen, token])
+  useEffect(() => {
     if (screen !== 'product-detail') return
     const productId = Number(window.location.pathname.split('/')[2])
     const product = data.products.find(item => item.id === productId)

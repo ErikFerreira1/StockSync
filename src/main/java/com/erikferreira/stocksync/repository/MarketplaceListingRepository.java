@@ -22,6 +22,10 @@ public interface MarketplaceListingRepository extends JpaRepository<MarketplaceL
             Long productId,
             ListingStatus status);
 
+    List<MarketplaceListing> findByProductIdAndStatusInAndSalesChannelActiveTrue(
+            Long productId,
+            List<ListingStatus> statuses);
+
     List<MarketplaceListing> findByProductIdAndStatusAndPausedByProductDeactivationTrueAndSalesChannelActiveTrue(
             Long productId,
             ListingStatus status);
