@@ -1,6 +1,7 @@
 package com.erikferreira.stocksync.controller;
 
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialTokenUpdateDTO;
+import com.erikferreira.stocksync.dto.integrationCredential.MercadoLivreAuthorizationResponseDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.MercadoLivreTokenResponseDTO;
 import com.erikferreira.stocksync.entity.IntegrationCredential;
 import com.erikferreira.stocksync.service.IntegrationCredentialService;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
+import java.net.URI;
 
 @RestController
 @Profile("!demo")
@@ -39,8 +42,25 @@ public class MercadoLivreAuthController {
     @Value("${app.mercadolivre.oauth-cookie-secure:true}")
     private boolean oauthCookieSecure;
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     @GetMapping("/mercadolivre/authorize/{salesChannelId}")
     public ResponseEntity<Void> authorize(@PathVariable Long salesChannelId) {
+        AuthorizationStart start = createAuthorizationStart(salesChannelId);
+        return ResponseEntity.status(302).location(start.authorizationUri())
+                .header(HttpHeaders.SET_COOKIE, start.cookie().toString()).build();
+    }
+
+    @GetMapping("/mercadolivre/authorization-url/{salesChannelId}")
+    public ResponseEntity<MercadoLivreAuthorizationResponseDTO> authorizationUrl(@PathVariable Long salesChannelId) {
+        AuthorizationStart start = createAuthorizationStart(salesChannelId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, start.cookie().toString())
+                .body(new MercadoLivreAuthorizationResponseDTO(start.authorizationUri().toString()));
+    }
+
+    private AuthorizationStart createAuthorizationStart(Long salesChannelId) {
         IntegrationCredential credential = credentialService.getCredentialEntityBySalesChannelId(salesChannelId);
         String browserToken = stateService.generateState();
         String state = stateService.createState(salesChannelId, browserToken);
@@ -53,15 +73,21 @@ public class MercadoLivreAuthController {
                 .build().encode().toUri();
 
         ResponseCookie cookie = browserCookie(browserToken, 600);
-
-        return ResponseEntity.status(302).location(url)
-                .header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+        return new AuthorizationStart(url, cookie);
     }
 
     @GetMapping("/mercadolivre/callback")
-    public ResponseEntity<String> callback(@RequestParam String code, @RequestParam String state,
+    public ResponseEntity<Void> callback(@RequestParam(required = false) String code,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String error,
             @CookieValue(name = "ml_oauth_browser", required = false) String browserToken) {
         Long salesChannelId = stateService.consumeState(state, browserToken);
+        if (error != null && !error.isBlank()) {
+            return frontendResult(salesChannelId, "denied");
+        }
+        if (code == null || code.isBlank()) {
+            return frontendResult(salesChannelId, "error");
+        }
         IntegrationCredential credential = credentialService.getCredentialEntityBySalesChannelId(salesChannelId);
 
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
@@ -71,21 +97,36 @@ public class MercadoLivreAuthController {
         map.add("code", code);
         map.add("redirect_uri", redirectUri);
 
-        MercadoLivreTokenResponseDTO response = mercadoLivreRestClient
-                .post()
-                .uri("/oauth/token")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(map)
-                .retrieve()
-                .body(MercadoLivreTokenResponseDTO.class);
+        try {
+            MercadoLivreTokenResponseDTO response = mercadoLivreRestClient
+                    .post()
+                    .uri("/oauth/token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(map)
+                    .retrieve()
+                    .body(MercadoLivreTokenResponseDTO.class);
 
-        Instant expiresAt = Instant.now().plusSeconds(response.expiresIn());
-        credentialService.updateToken(salesChannelId,
-                new IntegrationCredentialTokenUpdateDTO(response.accessToken(), response.refreshToken(), expiresAt));
+            if (response == null || response.accessToken() == null || response.refreshToken() == null || response.expiresIn() == null) {
+                return frontendResult(salesChannelId, "error");
+            }
+            Instant expiresAt = Instant.now().plusSeconds(response.expiresIn());
+            credentialService.updateToken(salesChannelId,
+                    new IntegrationCredentialTokenUpdateDTO(response.accessToken(), response.refreshToken(), expiresAt));
+        } catch (RestClientException exception) {
+            return frontendResult(salesChannelId, "error");
+        }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, browserCookie("", 0).toString())
-                .body("Successfully authorized! you may close this tab.");
+        return frontendResult(salesChannelId, "connected");
+    }
+
+    private ResponseEntity<Void> frontendResult(Long salesChannelId, String result) {
+        URI location = UriComponentsBuilder.fromUriString(frontendUrl)
+                .path("/channels")
+                .queryParam("mercadolivre", result)
+                .queryParam("channelId", salesChannelId)
+                .build().encode().toUri();
+        return ResponseEntity.status(302).location(location)
+                .header(HttpHeaders.SET_COOKIE, browserCookie("", 0).toString()).build();
     }
 
     private ResponseCookie browserCookie(String value, long maxAgeSeconds) {
@@ -97,4 +138,6 @@ public class MercadoLivreAuthController {
                 .maxAge(maxAgeSeconds)
                 .build();
     }
+
+    private record AuthorizationStart(URI authorizationUri, ResponseCookie cookie) {}
 }

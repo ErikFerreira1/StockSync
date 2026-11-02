@@ -48,6 +48,7 @@ class MercadoLivreAuthControllerTest {
         controller = new MercadoLivreAuthController(credentials, builder.build(), states);
         ReflectionTestUtils.setField(controller, "redirectUri", "https://stocksync.test/mercadolivre/callback");
         ReflectionTestUtils.setField(controller, "oauthCookieSecure", true);
+        ReflectionTestUtils.setField(controller, "frontendUrl", "https://stocksync.test");
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
@@ -114,7 +115,9 @@ class MercadoLivreAuthControllerTest {
 
         var request = get("/mercadolivre/callback").param("code", "oauth-code")
                 .param("state", authorization.state()).cookie(authorization.cookie());
-        var response = mvc.perform(request).andExpect(status().isOk()).andReturn().getResponse();
+        var response = mvc.perform(request).andExpect(status().isFound()).andReturn().getResponse();
+        assertThat(response.getHeader(HttpHeaders.LOCATION))
+                .isEqualTo("https://stocksync.test/channels?mercadolivre=connected&channelId=7");
 
         var updated = ArgumentCaptor.forClass(IntegrationCredentialTokenUpdateDTO.class);
         verify(credentials).getCredentialEntityBySalesChannelId(7L);
@@ -128,6 +131,25 @@ class MercadoLivreAuthControllerTest {
 
         clearInvocations(credentials);
         mvc.perform(request).andExpect(status().isBadRequest());
+        verifyNoInteractions(credentials);
+        server.verify();
+    }
+
+    @Test
+    void deniedCallbackShouldReturnToFrontendAndClearOAuthCookie() throws Exception {
+        Authorization authorization = authorize();
+        clearInvocations(credentials);
+
+        var response = mvc.perform(get("/mercadolivre/callback")
+                        .param("error", "access_denied")
+                        .param("state", authorization.state())
+                        .cookie(authorization.cookie()))
+                .andExpect(status().isFound())
+                .andReturn().getResponse();
+
+        assertThat(response.getHeader(HttpHeaders.LOCATION))
+                .isEqualTo("https://stocksync.test/channels?mercadolivre=denied&channelId=7");
+        assertThat(MockCookie.parse(response.getHeader(HttpHeaders.SET_COOKIE)).getMaxAge()).isZero();
         verifyNoInteractions(credentials);
         server.verify();
     }

@@ -1,6 +1,7 @@
 package com.erikferreira.stocksync.controller;
 
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialInsertDTO;
+import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialRequestDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialResponseDTO;
 import com.erikferreira.stocksync.service.IntegrationCredentialService;
 import com.erikferreira.stocksync.service.TokenRefreshService;
@@ -42,6 +43,13 @@ public class IntegrationCredentialController {
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(response.id()).toUri();
 
         return ResponseEntity.created(uri).body(response);
+    }
+
+    @PutMapping("/sales-channel/{salesChannelId}")
+    public ResponseEntity<IntegrationCredentialResponseDTO> saveForSalesChannel(
+            @PathVariable Long salesChannelId,
+            @Valid @RequestBody IntegrationCredentialRequestDTO dto) {
+        return ResponseEntity.ok(service.saveCredentialForSalesChannel(salesChannelId, dto));
     }
 
     //@PatchMapping("/{salesChannelId}/token")

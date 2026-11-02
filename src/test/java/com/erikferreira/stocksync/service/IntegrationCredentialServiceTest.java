@@ -1,6 +1,7 @@
 package com.erikferreira.stocksync.service;
 
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialInsertDTO;
+import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialRequestDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialTokenUpdateDTO;
 import com.erikferreira.stocksync.entity.IntegrationCredential;
 import com.erikferreira.stocksync.entity.SalesChannel;
@@ -96,5 +97,42 @@ class IntegrationCredentialServiceTest {
         assertThat(credential.getExpiresAt()).isEqualTo(expiration);
         assertThat(result.connected()).isTrue();
         verify(repository).save(credential);
+    }
+
+    @Test
+    void saveCredentialForSalesChannelShouldReplaceAppCredentialsAndClearOldTokens() {
+        credential.setAccessToken("old-access");
+        credential.setRefreshToken("old-refresh");
+        credential.setExpiresAt(Instant.now().plusSeconds(3600));
+        when(salesChannelService.getSalesChannelEntityById(1L)).thenReturn(channel);
+        when(repository.findBySalesChannelId(1L)).thenReturn(Optional.of(credential));
+        when(repository.save(credential)).thenReturn(credential);
+
+        var result = service.saveCredentialForSalesChannel(1L, new IntegrationCredentialRequestDTO("new-client", "new-secret"));
+
+        assertThat(credential.getClientId()).isEqualTo("new-client");
+        assertThat(credential.getClientSecretEncrypted()).isEqualTo("new-secret");
+        assertThat(credential.getAccessToken()).isNull();
+        assertThat(credential.getRefreshToken()).isNull();
+        assertThat(credential.getExpiresAt()).isNull();
+        assertThat(result.connected()).isFalse();
+        verify(repository).save(credential);
+    }
+
+    @Test
+    void saveCredentialForSalesChannelShouldCreateWhenNoCredentialExists() {
+        when(salesChannelService.getSalesChannelEntityById(1L)).thenReturn(channel);
+        when(repository.findBySalesChannelId(1L)).thenReturn(Optional.empty());
+        when(repository.save(any(IntegrationCredential.class))).thenAnswer(invocation -> {
+            IntegrationCredential saved = invocation.getArgument(0);
+            saved.setId(3L);
+            return saved;
+        });
+
+        var result = service.saveCredentialForSalesChannel(1L, new IntegrationCredentialRequestDTO("client", "secret"));
+
+        assertThat(result.id()).isEqualTo(3L);
+        assertThat(result.salesChannelId()).isEqualTo(1L);
+        assertThat(result.connected()).isFalse();
     }
 }

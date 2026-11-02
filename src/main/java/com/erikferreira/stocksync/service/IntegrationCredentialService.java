@@ -1,6 +1,7 @@
 package com.erikferreira.stocksync.service;
 
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialInsertDTO;
+import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialRequestDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialResponseDTO;
 import com.erikferreira.stocksync.dto.integrationCredential.IntegrationCredentialTokenUpdateDTO;
 import com.erikferreira.stocksync.entity.IntegrationCredential;
@@ -56,6 +57,23 @@ public class IntegrationCredentialService {
 
         repository.save(entity);
         return toResponseDTO(entity);
+    }
+
+    @Transactional
+    public IntegrationCredentialResponseDTO saveCredentialForSalesChannel(
+            Long salesChannelId,
+            @Valid IntegrationCredentialRequestDTO dto) {
+        SalesChannel salesChannel = salesChannelService.getSalesChannelEntityById(salesChannelId);
+        IntegrationCredential entity = repository.findBySalesChannelId(salesChannelId)
+                .orElseGet(() -> IntegrationCredential.builder().salesChannel(salesChannel).build());
+
+        entity.setClientId(dto.clientId());
+        entity.setClientSecretEncrypted(dto.clientSecret());
+        entity.setAccessToken(null);
+        entity.setRefreshToken(null);
+        entity.setExpiresAt(null);
+
+        return toResponseDTO(repository.save(entity));
     }
 
     @Transactional
