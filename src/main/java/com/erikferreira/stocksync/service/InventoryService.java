@@ -62,6 +62,8 @@ public class InventoryService {
                 .updatedAt(Instant.now())
                 .build();
 
+        product.setInventory(inventory);
+
         return toResponseDTO(repository.save(inventory));
     }
 
