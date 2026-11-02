@@ -68,6 +68,13 @@ export type SalesChannel = {
   baseUrl: string | null
   active: boolean
 }
+export type IntegrationCredential = {
+  id: number
+  salesChannelId: number
+  clientId: string
+  expiresAt: string | null
+  connected: boolean
+}
 
 export type ListingStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED' | 'CLOSED'
 export type DemoMarketplaceListing = {

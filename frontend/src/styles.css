@@ -282,3 +282,8 @@ td{height:54px;font-size:13px}
 .demo-listing-detail>div>span{color:#788689;font-size:12px}
 .demo-listing-detail>div>b{color:#344246;font-size:14px}
 @media(max-width:700px){.demo-listing-detail{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.connection-warning{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid #eddabf;border-radius:4px;background:#fff9f0;color:#725331;font-size:13px;line-height:1.5}
+.connection-warning>span{color:#786e60;font-size:12px}
+.connection-warning code{color:#344246;font-size:11px}
+.connection-help{font-size:12px;line-height:1.5}
+.credential-state{display:flex;align-items:center;gap:7px;margin:10px 0;color:#718084;font-size:12px}

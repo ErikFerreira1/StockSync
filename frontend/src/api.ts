@@ -1,4 +1,4 @@
-import type { ChannelType, DemoMarketplaceListing, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
+import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
@@ -77,6 +77,12 @@ export const api = {
     request<SalesChannel>(`/sales-channels/${id}`, { method: 'PUT', body: JSON.stringify(channel) }),
   setSalesChannelActive: (id: number, active: boolean) =>
     request<void>(`/sales-channels/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'PATCH' }),
+  integrationCredential: (salesChannelId: number) =>
+    request<IntegrationCredential>(`/integration-credentials/sales-channel/${salesChannelId}`),
+  saveIntegrationCredential: (salesChannelId: number, credentials: { clientId: string; clientSecret: string }) =>
+    request<IntegrationCredential>(`/integration-credentials/sales-channel/${salesChannelId}`, { method: 'PUT', body: JSON.stringify(credentials) }),
+  mercadoLivreAuthorizationUrl: (salesChannelId: number) =>
+    request<{ authorizationUrl: string }>(`/mercadolivre/authorization-url/${salesChannelId}`),
   listings: () => request<Page<MarketplaceListing>>('/marketplace-listings?size=100&sort=id,desc'),
   createListing: (listing: { productId: number; salesChannelId: number; listingId: string; listingUrl: string; status: ListingStatus }) =>
     request<MarketplaceListing>('/marketplace-listings', { method: 'POST', body: JSON.stringify(listing) }),
