@@ -5,10 +5,14 @@ const TOKEN_KEY = 'stocksync.accessToken'
 
 export class ApiError extends Error {
   status: number
+  fieldErrors: { field: string; message: string }[]
+  retryAfter: string | null
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, fieldErrors: { field: string; message: string }[] = [], retryAfter: string | null = null) {
     super(message)
     this.status = status
+    this.fieldErrors = fieldErrors
+    this.retryAfter = retryAfter
   }
 }
 
@@ -37,7 +41,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       clearToken()
       window.dispatchEvent(new Event('stocksync:unauthorized'))
     }
-    throw new ApiError(response.status, message)
+    throw new ApiError(response.status, message, Array.isArray(body?.errors) ? body.errors : [], response.headers.get('Retry-After'))
   }
   return body as T
 }
@@ -53,8 +57,9 @@ export async function login(username: string, password: string) {
 
 export function getLoginError(error: unknown) {
   if (error instanceof ApiError) {
-    if (error.status === 401 || error.status === 403) return 'Usuário ou senha incorretos.'
-    if (error.status === 429) return 'Muitas tentativas. Aguarde um pouco e tente novamente.'
+    if (error.status === 401) return 'Usuário ou senha incorretos.'
+    if (error.status === 403) return 'A conta não tem permissão para entrar.'
+    if (error.status === 429) return `Muitas tentativas. Aguarde ${error.retryAfter ? `${error.retryAfter} segundos` : 'um pouco'} e tente novamente.`
     return 'A API não conseguiu concluir o login. Tente novamente.'
   }
   return 'Não foi possível conectar à API. Confirme que o StockSync está em execução.'
@@ -63,6 +68,8 @@ export function getLoginError(error: unknown) {
 export const api = {
   products: () => request<Page<Product>>('/products?size=100&sort=name,asc'),
   product: (id: number) => request<Product>(`/products/${id}`),
+  createProduct: (product: { sku: string; name: string; description: string; basePrice: number; initialQuantity: number; minQuantity: number }) =>
+    request<Product>('/products', { method: 'POST', body: JSON.stringify(product) }),
   updateProduct: (id: number, product: { sku: string; name: string; description: string; basePrice: number }) =>
     request<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(product) }),
   setProductActive: (id: number, active: boolean) =>
