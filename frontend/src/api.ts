@@ -1,4 +1,4 @@
-import type { LoginResponse, Page, Product, StockMovement, SyncEvent } from './types'
+import type { ChannelType, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
@@ -70,6 +70,16 @@ export const api = {
   product: (id: number) => request<Product>(`/products/${id}`),
   createProduct: (product: { sku: string; name: string; description: string; basePrice: number; initialQuantity: number; minQuantity: number }) =>
     request<Product>('/products', { method: 'POST', body: JSON.stringify(product) }),
+  salesChannels: () => request<Page<SalesChannel>>('/sales-channels?size=100&sort=name,asc'),
+  createSalesChannel: (channel: { name: string; type: ChannelType; baseUrl: string }) =>
+    request<SalesChannel>('/sales-channels', { method: 'POST', body: JSON.stringify(channel) }),
+  updateSalesChannel: (id: number, channel: { name: string; type: ChannelType; baseUrl: string }) =>
+    request<SalesChannel>(`/sales-channels/${id}`, { method: 'PUT', body: JSON.stringify(channel) }),
+  setSalesChannelActive: (id: number, active: boolean) =>
+    request<void>(`/sales-channels/${id}/${active ? 'activate' : 'deactivate'}`, { method: 'PATCH' }),
+  listings: () => request<Page<MarketplaceListing>>('/marketplace-listings?size=100&sort=id,desc'),
+  createListing: (listing: { productId: number; salesChannelId: number; listingId: string; listingUrl: string; status: ListingStatus }) =>
+    request<MarketplaceListing>('/marketplace-listings', { method: 'POST', body: JSON.stringify(listing) }),
   updateProduct: (id: number, product: { sku: string; name: string; description: string; basePrice: number }) =>
     request<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(product) }),
   setProductActive: (id: number, active: boolean) =>

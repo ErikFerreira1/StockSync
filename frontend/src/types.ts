@@ -59,3 +59,23 @@ export type SyncEvent = {
   errorMessage: string | null
   attempts: number
 }
+
+export type ChannelType = 'MERCADO_LIVRE' | 'SHOPEE' | 'OTHER'
+export type SalesChannel = {
+  id: number
+  name: string
+  type: ChannelType
+  baseUrl: string | null
+  active: boolean
+}
+
+export type ListingStatus = 'ACTIVE' | 'INACTIVE' | 'PAUSED' | 'CLOSED'
+export type MarketplaceListing = {
+  id: number
+  productId: number
+  salesChannelId: number
+  listingId: string
+  listingUrl: string | null
+  status: ListingStatus
+  lastSyncedAt: string | null
+}
