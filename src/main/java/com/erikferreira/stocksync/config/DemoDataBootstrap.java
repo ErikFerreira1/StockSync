@@ -11,6 +11,7 @@ import com.erikferreira.stocksync.entity.User;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
 import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import com.erikferreira.stocksync.entity.enums.UserRole;
+import com.erikferreira.stocksync.event.MarketplaceListingCreatedEvent;
 import com.erikferreira.stocksync.integration.adapter.DemoMarketplaceAdapter;
 import com.erikferreira.stocksync.repository.MarketplaceListingRepository;
 import com.erikferreira.stocksync.repository.ProductRepository;
@@ -26,6 +27,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +53,7 @@ class DemoDataBootstrap implements ApplicationRunner {
     private final MarketplaceListingService listingService;
     private final DemoMarketplaceAdapter demoMarketplaceAdapter;
     private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.demo.username}")
     private String demoUsername;
@@ -82,6 +85,8 @@ class DemoDataBootstrap implements ApplicationRunner {
                 2,
                 5,
                 "DEMO-MLB-KEYBOARD");
+
+        registerPersistedMarketplaceListings();
     }
 
     private void resetDemoUser() {
@@ -181,5 +186,17 @@ class DemoDataBootstrap implements ApplicationRunner {
                 product.getBasePrice(),
                 quantity,
                 listing.getStatus());
+    }
+
+    private void registerPersistedMarketplaceListings() {
+        listingRepository.findAll().stream()
+                .filter(listing -> listing.getSalesChannel().getType() == ChannelType.MERCADO_LIVRE)
+                .forEach(listing -> eventPublisher.publishEvent(new MarketplaceListingCreatedEvent(
+                        listing.getProduct().getId(),
+                        listing.getListingId(),
+                        listing.getProduct().getName(),
+                        listing.getProduct().getBasePrice(),
+                        listing.getProduct().getInventory().getAvailableQuantity(),
+                        listing.getStatus())));
     }
 }

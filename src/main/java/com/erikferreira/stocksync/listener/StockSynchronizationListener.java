@@ -1,8 +1,11 @@
 package com.erikferreira.stocksync.listener;
 
 import com.erikferreira.stocksync.event.StockChangedEvent;
+import com.erikferreira.stocksync.event.MarketplaceListingCreatedEvent;
+import com.erikferreira.stocksync.integration.adapter.DemoMarketplaceAdapter;
 import com.erikferreira.stocksync.service.StockSynchronizationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -12,11 +15,27 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class StockSynchronizationListener {
 
     private final StockSynchronizationService synchronizationService;
+    private final ObjectProvider<DemoMarketplaceAdapter> demoMarketplaceAdapterProvider;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStockChanged(StockChangedEvent event) {
         synchronizationService.synchronizeProductStock(
                 event.productId()
         );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleListingCreated(MarketplaceListingCreatedEvent event) {
+        demoMarketplaceAdapterProvider.ifAvailable(adapter -> adapter.registerListing(
+                event.listingId(),
+                event.productId(),
+                event.title(),
+                event.price(),
+                event.availableQuantity(),
+                event.status()));
+
+        if (event.status() == com.erikferreira.stocksync.entity.enums.ListingStatus.ACTIVE) {
+            synchronizationService.synchronizeProductStock(event.productId());
+        }
     }
 }

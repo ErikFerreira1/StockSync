@@ -6,6 +6,7 @@ import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
 import com.erikferreira.stocksync.entity.enums.ListingStatus;
+import com.erikferreira.stocksync.event.MarketplaceListingCreatedEvent;
 import com.erikferreira.stocksync.factory.ProductFactory;
 import com.erikferreira.stocksync.repository.MarketplaceListingRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidSalesChannelException;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.eq;
 
 @ExtendWith(MockitoExtension.class)
 class MarketplaceListingServiceTest {
@@ -39,6 +42,10 @@ class MarketplaceListingServiceTest {
     private ProductService productService;
     @Mock
     private SalesChannelService salesChannelService;
+    @Mock
+    private InventoryService inventoryService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
     @InjectMocks
     private MarketplaceListingService service;
 
@@ -76,6 +83,7 @@ class MarketplaceListingServiceTest {
         when(productService.getProductEntityById(1L)).thenReturn(product);
         when(salesChannelService.getSalesChannelEntityById(2L)).thenReturn(channel);
         when(repository.existsBySalesChannelIdAndListingId(2L, "MLB123")).thenReturn(false);
+        when(inventoryService.getAvailableQuantity(1L)).thenReturn(4);
         when(repository.save(any(MarketplaceListing.class))).thenAnswer(invocation -> {
             MarketplaceListing saved = invocation.getArgument(0);
             saved.setId(3L);
@@ -87,6 +95,8 @@ class MarketplaceListingServiceTest {
         assertThat(result.id()).isEqualTo(3L);
         assertThat(result.productId()).isEqualTo(1L);
         assertThat(result.salesChannelId()).isEqualTo(2L);
+        verify(eventPublisher).publishEvent(eq(new MarketplaceListingCreatedEvent(
+                1L, "MLB123", product.getName(), product.getBasePrice(), 4, ListingStatus.ACTIVE)));
     }
 
     @Test

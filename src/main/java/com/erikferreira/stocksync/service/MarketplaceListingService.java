@@ -6,12 +6,14 @@ import com.erikferreira.stocksync.entity.MarketplaceListing;
 import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
+import com.erikferreira.stocksync.event.MarketplaceListingCreatedEvent;
 import com.erikferreira.stocksync.repository.MarketplaceListingRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidSalesChannelException;
 import com.erikferreira.stocksync.service.exceptions.MarketplaceListingAlreadyExistsException;
 import com.erikferreira.stocksync.service.exceptions.MarketplaceListingNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,8 @@ public class MarketplaceListingService {
     private final MarketplaceListingRepository repository;
     private final ProductService productService;
     private final SalesChannelService salesChannelService;
+    private final InventoryService inventoryService;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Transactional(readOnly = true)
@@ -70,6 +74,14 @@ public class MarketplaceListingService {
                 .build();
 
         repository.save(listing);
+
+        eventPublisher.publishEvent(new MarketplaceListingCreatedEvent(
+                product.getId(),
+                listing.getListingId(),
+                product.getName(),
+                product.getBasePrice(),
+                inventoryService.getAvailableQuantity(product.getId()),
+                listing.getStatus()));
 
         return toResponse(listing);
     }
