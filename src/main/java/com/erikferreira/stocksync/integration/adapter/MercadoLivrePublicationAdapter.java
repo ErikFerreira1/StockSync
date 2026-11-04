@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import java.util.stream.StreamSupport;
 @Component
 @Profile("!demo")
 @RequiredArgsConstructor
+@Slf4j
 public class MercadoLivrePublicationAdapter implements MarketplacePublicationPort {
     private final RestClient mercadoLivreRestClient;
     private final TokenRefreshService tokenRefreshService;
@@ -59,9 +61,16 @@ public class MercadoLivrePublicationAdapter implements MarketplacePublicationPor
         JsonNode shipping = get(token, "/users/{id}/shipping_preferences", user.path("id").asText());
         JsonNode categoryShipping = get(token, "/categories/{id}/shipping_preferences", categoryId);
         List<String> userModes = nodes(shipping.path("modes")).stream().map(JsonNode::asText).toList();
+        boolean mandatoryMe2 = nodes(shipping.path("tags")).stream()
+                .anyMatch(n -> "optional_me1_allowed".equals(n.asText()));
+        log.info("Publication shipping availability: account modes {}, category modes {}, mandatory ME2 {}, category restricted {}",
+                userModes, nodes(categoryShipping.path("logistics")).stream().map(n -> n.path("mode").asText()).toList(),
+                mandatoryMe2, categoryShipping.path("restricted").asBoolean());
         List<String> modes = nodes(categoryShipping.path("logistics")).stream().map(n -> n.path("mode").asText())
                 .filter(userModes::contains).filter(m -> Set.of("me2", "not_specified").contains(m))
-                .filter(m -> !"me2".equals(m) || !categoryShipping.path("restricted").asBoolean()).distinct().toList();
+                // "restricted" signals category requirements, not a blanket ban on ME2.
+                // The item validator checks those requirements against the actual product attributes.
+                .filter(m -> !mandatoryMe2 || "me2".equals(m)).distinct().toList();
         boolean userProducts = nodes(user.path("tags")).stream().anyMatch(n -> "user_product_seller".equals(n.asText()));
         return new PublicationOptionsDTO(categoryId, category.path("name").asText(), userProducts,
                 settings.path("max_title_length").asInt(60), settings.path("max_pictures_per_item").asInt(12),
@@ -69,9 +78,12 @@ public class MercadoLivrePublicationAdapter implements MarketplacePublicationPor
     }
 
     @Override
-    public void validate(PublicationRequestDTO request, int quantity) {
+    public List<String> validate(PublicationRequestDTO request, int quantity) {
         String token = tokenRefreshService.getValidAccessToken(request.salesChannelId());
-        post(token, "/items/validate", payload(request, quantity, token));
+        JsonNode result = post(token, "/items/validate", payload(request, quantity, token));
+        if (result == null) return List.of();
+        return nodes(result.path("cause")).stream().filter(n -> "warning".equals(n.path("type").asText()))
+                .map(n -> safeRemoteText(n.path("code").asText() + ": " + n.path("message").asText(), token)).toList();
     }
 
     @Override
@@ -142,8 +154,20 @@ public class MercadoLivrePublicationAdapter implements MarketplacePublicationPor
             return mercadoLivreRestClient.post().uri(path).headers(h -> h.setBearerAuth(token))
                     .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(JsonNode.class);
         } catch (RestClientResponseException exception) {
+            if ("/items/validate".equals(path) && exception.getStatusCode().value() == 400) {
+                try {
+                    JsonNode result = objectMapper.readTree(exception.getResponseBodyAsByteArray());
+                    List<JsonNode> causes = nodes(result.path("cause"));
+                    if ("validation_error".equals(result.path("error").asText()) && !causes.isEmpty()
+                            && causes.stream().allMatch(n -> "warning".equals(n.path("type").asText()))) {
+                        // Mercado Livre marks warnings as non-blocking. Keep them for explicit review.
+                        // This applies only to validation: creating an item still requires its returned ID.
+                        return result;
+                    }
+                } catch (java.io.IOException ignored) { /* Malformed bodies remain rejected. */ }
+            }
             if (Set.of(400, 401, 403, 404, 405, 413, 415, 422, 429).contains(exception.getStatusCode().value())) {
-                throw rejected(exception);
+                throw rejected(exception, token);
             }
             throw new MarketplaceIntegrationException("Mercado Livre did not confirm publication; check the account before retrying");
         } catch (RestClientException exception) {
@@ -151,26 +175,44 @@ public class MercadoLivrePublicationAdapter implements MarketplacePublicationPor
         }
     }
 
-    private PublicationValidationException rejected(RestClientResponseException exception) {
+    private PublicationValidationException rejected(RestClientResponseException exception, String token) {
         List<String> issues = new ArrayList<>();
         try {
             JsonNode response = objectMapper.readTree(exception.getResponseBodyAsByteArray());
+            List<String> warnings = new ArrayList<>();
             for (JsonNode cause : nodes(response.path("cause"))) {
-                if ("warning".equals(cause.path("type").asText())) continue;
                 String code = cause.path("code").asText();
-                if (code.matches("[a-zA-Z0-9_.-]{1,150}")) {
-                    // Only codes and attribute identifiers; free-form remote text may contain secrets.
-                    var matcher = java.util.regex.Pattern.compile("\\[([A-Z0-9_, ]{1,150})]")
-                            .matcher(cause.path("message").asText());
-                    issues.add(code + (matcher.find() ? " [" + matcher.group(1) + "]" : ""));
-                }
+                String message = safeRemoteText(cause.path("message").asText(), token);
+                String safeCode = code.matches("[a-zA-Z0-9_.-]{1,150}") ? safeRemoteText(code, token) : "";
+                List<String> target = "warning".equals(cause.path("type").asText()) ? warnings : issues;
+                // Some Mercado Livre validations only provide a message/references, without a code.
+                if (!message.isBlank()) target.add(safeCode.isBlank() ? message : safeCode + ": " + message);
+                else if (!safeCode.isBlank()) target.add(safeCode);
             }
+            if (issues.isEmpty()) issues.addAll(warnings);
+            if (issues.isEmpty()) {
+                List<String> fields = new ArrayList<>();
+                response.fieldNames().forEachRemaining(fields::add);
+                log.warn("Publication rejection has no detailed causes: HTTP {}, fields {}, cause type {}",
+                        exception.getStatusCode().value(), fields, response.path("cause").getNodeType());
+            }
+            String message = safeRemoteText(response.path("message").asText(), token);
+            if (issues.isEmpty() && !message.isBlank() && !"Validation error".equalsIgnoreCase(message)) issues.add(message);
             if (issues.isEmpty() && response.path("error").asText().matches("[a-zA-Z0-9_.-]{1,150}")) {
-                issues.add(response.path("error").asText());
+                issues.add(safeRemoteText(response.path("error").asText(), token));
             }
         } catch (Exception ignored) { /* Return a safe fallback for malformed remote errors. */ }
         if (issues.isEmpty()) issues.add("Mercado Livre rejected publication data (HTTP " + exception.getStatusCode().value() + ")");
         return new PublicationValidationException(issues);
+    }
+
+    private String safeRemoteText(String text, String token) {
+        String safe = token == null || token.isBlank() ? text : text.replace(token, "[REDACTED]");
+        safe = safe.replaceAll("(?i)(?:APP_USR|TEST)-[A-Za-z0-9_-]+", "[REDACTED]")
+                .replaceAll("(?i)Bearer\\s+[^\\s\"',;]+", "Bearer [REDACTED]")
+                .replaceAll("(?i)(access_token|refresh_token|client_secret|authorization)([\\s\"':=]+)[^\\s\"',;}]+", "$1=[REDACTED]")
+                .replaceAll("[\\p{Cntrl}]", " ");
+        return safe.substring(0, Math.min(600, safe.length())).trim();
     }
 
     private List<PublicationOptionsDTO.Field> fields(JsonNode response) {

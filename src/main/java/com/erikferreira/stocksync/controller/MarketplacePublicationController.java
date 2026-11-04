@@ -33,9 +33,8 @@ public class MarketplacePublicationController {
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<Void> validate(@Valid @RequestBody PublicationRequestDTO request) {
-        service.validate(request);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<PublicationValidationResponseDTO> validate(@Valid @RequestBody PublicationRequestDTO request) {
+        return ResponseEntity.ok(service.validate(request));
     }
 
     @PostMapping

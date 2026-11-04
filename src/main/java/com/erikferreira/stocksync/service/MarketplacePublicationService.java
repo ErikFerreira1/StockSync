@@ -42,8 +42,8 @@ public class MarketplacePublicationService {
         return publicationPort.getOptions(channelId, categoryId);
     }
 
-    public void validate(@Valid PublicationRequestDTO request) {
-        publicationPort.validate(request, prepare(request));
+    public PublicationValidationResponseDTO validate(@Valid PublicationRequestDTO request) {
+        return new PublicationValidationResponseDTO(publicationPort.validate(request, prepare(request)));
     }
 
     public PublicationResponseDTO publish(@Valid PublicationRequestDTO request) {

@@ -2,6 +2,7 @@ package com.erikferreira.stocksync.controller;
 
 import com.erikferreira.stocksync.controller.handler.GlobalExceptionHandler;
 import com.erikferreira.stocksync.service.MarketplacePublicationService;
+import com.erikferreira.stocksync.dto.marketplaceListing.PublicationValidationResponseDTO;
 import com.erikferreira.stocksync.service.exceptions.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,8 +32,10 @@ class MarketplacePublicationControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
-    @Test void validateShouldReturnNoContentWithoutPublishing() throws Exception {
-        mvc.perform(post("/marketplace-publications/validate").contentType("application/json").content(valid)).andExpect(status().isNoContent());
+    @Test void validateShouldReturnWarningsWithoutPublishing() throws Exception {
+        when(service.validate(any())).thenReturn(new PublicationValidationResponseDTO(List.of("shipping.me2_adoption_mandatory")));
+        mvc.perform(post("/marketplace-publications/validate").contentType("application/json").content(valid))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.warnings[0]").value("shipping.me2_adoption_mandatory"));
         verify(service).validate(any());
         verify(service, never()).publish(any());
     }

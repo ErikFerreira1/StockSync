@@ -18,12 +18,14 @@ Esta primeira versão atende produtos sem variações no Brasil, fotos por URL H
 
 - `GET /marketplace-publications/categories?salesChannelId=...&query=...`: sugestões de categoria.
 - `GET /marketplace-publications/options?salesChannelId=...&categoryId=...`: atributos, condições de venda, limites, tipos de anúncio e envio.
-- `POST /marketplace-publications/validate`: validação local e remota, sem criar anúncio.
+- `POST /marketplace-publications/validate`: validação local e remota, sem criar anúncio; retorna `200` com `warnings` para revisão.
 - `POST /marketplace-publications`: validação, publicação e vínculo local; retorna `201` com `listing` e `warnings`.
 
 O corpo é `PublicationRequestDTO`. Cada publicação usa um `requestId` UUID. Não reutilize a identificação com dados diferentes. As rotas exigem ADMIN ou OPERATOR, inclusive as consultas de opções; VIEWER não pode usá-las. No perfil demo, as rotas de publicação real não são registradas.
 
 O adaptador detecta `user_product_seller` em `/users/me` para enviar `family_name` em contas User Products e `title` nas contas do modelo anterior. A descrição é enviada separadamente, após persistir o ID externo. Uma falha na descrição retorna sucesso com `description_not_saved`; o anúncio permanece criado e a descrição pode ser completada no Mercado Livre.
+
+O validador pode retornar HTTP 400 com `validation_error` contendo somente causas do tipo `warning`. Esses avisos não bloqueantes são preservados na revisão, incluindo eventuais ajustes de envio exigidos pela plataforma. Causas bloqueantes, desconhecidas ou ausentes continuam sendo rejeitadas. Essa interpretação vale somente para `/items/validate`: a criação exige uma resposta bem-sucedida com o ID externo, nunca apenas avisos.
 
 ## Repetição e resultados incertos
 

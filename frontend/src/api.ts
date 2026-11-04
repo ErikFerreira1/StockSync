@@ -74,7 +74,7 @@ export const api = {
   publicationOptions: (salesChannelId: number, categoryId: string) =>
     request<PublicationOptions>(`/marketplace-publications/options?salesChannelId=${salesChannelId}&categoryId=${encodeURIComponent(categoryId)}`),
   validatePublication: (requestBody: PublicationRequest) =>
-    request<void>('/marketplace-publications/validate', { method: 'POST', body: JSON.stringify(requestBody) }),
+    request<{ warnings: string[] }>('/marketplace-publications/validate', { method: 'POST', body: JSON.stringify(requestBody) }),
   publishListing: (requestBody: PublicationRequest) =>
     request<{ listing: MarketplaceListing; warnings: string[] }>('/marketplace-publications', { method: 'POST', body: JSON.stringify(requestBody) }),
   products: () => request<Page<Product>>('/products?size=100&sort=name,asc'),

@@ -4,18 +4,28 @@ import { X } from 'lucide-react'
 import { api, ApiError } from './api'
 import type { Product, SalesChannel, PublicationField, PublicationOptions, PublicationRequest } from './types'
 
-type Review = { request: PublicationRequest; quantity: number; productName: string; channelName: string; categoryName: string; listingTypeName: string }
+type Review = { request: PublicationRequest; quantity: number; productName: string; channelName: string; categoryName: string; listingTypeName: string; warnings?: string[] }
 const PENDING_KEY = 'stocksync.pendingPublication'
 
 function pendingReview(): Review | null {
   try { return JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null') as Review | null } catch { return null }
 }
 
+function warningMessage(issue: string) {
+  if (issue.startsWith('shipping.me2_adoption_mandatory')) return 'O Mercado Livre exige Mercado Envios (ME2) e poderá ajustar a modalidade informada. As regras e custos desse envio se aplicam.'
+  if (issue.startsWith('shipping.lost_me1_by_user')) return 'Esta conta não está habilitada para a modalidade de envio ME1.'
+  return issue
+}
+
 function errorMessage(cause: unknown): string {
   if (!(cause instanceof ApiError)) return 'Não foi possível acessar a API. Confira sua conexão.'
   if (cause.status === 403) return 'Sua conta precisa ter permissão de administrador ou operador.'
   if (cause.status === 409) return `Confira a autorização do canal ou uma tentativa de publicação pendente. ${cause.message}`
-  if (cause.issues.length) return `O Mercado Livre exige correções: ${cause.issues.join(' · ')}`
+  if (cause.issues.length) return `O Mercado Livre exige correções:\n${cause.issues.map(issue => {
+    if (issue.startsWith('shipping.me2_adoption_mandatory')) return '• Esta conta exige Mercado Envios. Selecione essa opção no campo Envio.'
+    if (issue.startsWith('shipping.lost_me1_by_user')) return '• A modalidade de envio ME1 não está habilitada para esta conta.'
+    return `• ${issue}`
+  }).join('\n')}`
   return [...cause.fieldErrors.map(e => e.message), cause.message].filter(Boolean).join(' · ')
 }
 
@@ -96,8 +106,9 @@ export default function PublicationDialog({ products, channels, onClose, onPubli
     setDraft(request)
     setBusy(true); setError('')
     try {
-      await api.validatePublication(request)
+      const validation = await api.validatePublication(request)
       setReview({ request, quantity: product.availableQuantity, productName: product.name,
+        warnings: validation.warnings,
         channelName: channels.find(c => c.id === Number(channelId))?.name || '', categoryName: options.categoryName,
         listingTypeName: options.listingTypes.find(t => t.id === request.listingTypeId)?.name || request.listingTypeId })
     } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
@@ -134,6 +145,7 @@ export default function PublicationDialog({ products, channels, onClose, onPubli
       <button type="button" className="close" aria-label="Fechar" onClick={onClose} disabled={busy}><X size={19}/></button></div>
     {error && <p className="form-error" role="alert">{error}</p>}
     {review ? <><p className="connection-help">Ao confirmar, um anúncio real será criado na conta conectada. As tarifas e regras do Mercado Livre se aplicam.</p>
+      {!!review.warnings?.length && <div className="connection-warning" role="status"><b>Avisos do Mercado Livre</b><ul>{review.warnings.map((issue, index) => <li key={index}>{warningMessage(issue)}</li>)}</ul><span>Revise estes avisos antes de confirmar a publicação.</span></div>}
       <dl className="publication-review"><dt>Produto</dt><dd>{review.productName}</dd><dt>Canal</dt><dd>{review.channelName}</dd><dt>Nome</dt><dd>{review.request.name}</dd>
         <dt>Categoria</dt><dd>{review.categoryName}</dd><dt>Preço</dt><dd>{review.request.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</dd>
         <dt>Estoque</dt><dd>{review.quantity} unidades (será conferido novamente ao publicar)</dd><dt>Tipo</dt><dd>{review.listingTypeName}</dd><dt>Fotos</dt><dd>{review.request.pictures.length}</dd>
@@ -160,7 +172,7 @@ export default function PublicationDialog({ products, channels, onClose, onPubli
         <h3>Características obrigatórias</h3>{options.attributes.filter(f => f.required).map(f => <Field key={f.id} field={f} prefix="attr_" initial={initialValue(f)}/>)}
         <details><summary>Outras características</summary>{options.attributes.filter(f => !f.required).map(f => <Field key={f.id} field={f} prefix="attr_" initial={initialValue(f)}/>)}</details>
         {options.saleTerms.length > 0 && <><h3>Condições de venda e garantia</h3>{options.saleTerms.filter(f => f.required || f.id.startsWith('WARRANTY_')).map(f => <Field key={f.id} field={f} prefix="term_" initial={initialValue(f, true)}/>)}<details><summary>Outras condições de venda</summary>{options.saleTerms.filter(f => !f.required && !f.id.startsWith('WARRANTY_')).map(f => <Field key={f.id} field={f} prefix="term_" initial={initialValue(f, true)}/>)}</details></>}
-        <label className="edit-field">Envio<select name="shippingMode" required defaultValue={draft?.shippingMode || ''}><option value="" disabled>Selecione</option>{options.shippingModes.map(m => <option key={m} value={m}>{m === 'me2' ? 'Mercado Envios' : 'A combinar'}</option>)}</select></label>
+        <label className="edit-field">Envio<select name="shippingMode" required defaultValue={draft?.shippingMode || (options.shippingModes.includes('me2') ? 'me2' : '')}><option value="" disabled>Selecione</option>{options.shippingModes.map(m => <option key={m} value={m}>{m === 'me2' ? 'Mercado Envios' : 'A combinar'}</option>)}</select></label>
         <label className="publication-check"><input type="checkbox" name="freeShipping" defaultChecked={draft?.freeShipping}/> Oferecer frete grátis</label>
         {options.localPickUpAllowed && <label className="publication-check"><input type="checkbox" name="localPickUp" defaultChecked={draft?.localPickUp}/> Permitir retirada pessoalmente</label>}
         <label className="edit-field">Descrição<textarea rows={5} maxLength={50000} value={description} onChange={e => setDescription(e.target.value)}/></label>

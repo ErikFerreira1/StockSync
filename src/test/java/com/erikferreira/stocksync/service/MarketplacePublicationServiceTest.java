@@ -76,7 +76,8 @@ class MarketplacePublicationServiceTest {
 
     @Test void validationShouldNotPublishOrReserve() {
         ready();
-        service.validate(request);
+        when(port.validate(request, 7)).thenReturn(List.of("shipping.me2_adoption_mandatory"));
+        assertThat(service.validate(request).warnings()).containsExactly("shipping.me2_adoption_mandatory");
         verify(port).validate(request, 7);
         verify(port, never()).publish(any(), anyInt());
         verifyNoInteractions(journal, listings);

@@ -288,6 +288,7 @@ td{height:54px;font-size:13px}
 .connection-help{font-size:12px;line-height:1.5}
 .credential-state{display:flex;align-items:center;gap:7px;margin:10px 0;color:#718084;font-size:12px}
 .publication-dialog { max-height: 90vh; overflow-y: auto; }
+.publication-dialog > .form-error { color: #ba534a; white-space: pre-line; overflow-wrap: anywhere; }
 .publication-dialog .edit-field { margin-top: 16px; }
 .publication-dialog textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 10px 12px; border: 1px solid #dce2e9; border-radius: 8px; font: inherit; }
 .publication-dialog h3 { margin-top: 24px; font-size: 15px; }
