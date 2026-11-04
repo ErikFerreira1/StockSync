@@ -1,9 +1,10 @@
-import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent } from './types'
+import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent, PublicationOptions, PublicationRequest } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
 
 export class ApiError extends Error {
+  issues: string[] = []
   status: number
   fieldErrors: { field: string; message: string }[]
   retryAfter: string | null
@@ -41,7 +42,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       clearToken()
       window.dispatchEvent(new Event('stocksync:unauthorized'))
     }
-    throw new ApiError(response.status, message, Array.isArray(body?.errors) ? body.errors : [], response.headers.get('Retry-After'))
+    const error = new ApiError(response.status, message, Array.isArray(body?.errors) ? body.errors : [], response.headers.get('Retry-After'))
+    error.issues = Array.isArray(body?.issues) ? body.issues : []
+    throw error
   }
   return body as T
 }
@@ -66,6 +69,14 @@ export function getLoginError(error: unknown) {
 }
 
 export const api = {
+  publicationCategories: (salesChannelId: number, query: string) =>
+    request<{ id: string; name: string }[]>(`/marketplace-publications/categories?salesChannelId=${salesChannelId}&query=${encodeURIComponent(query)}`),
+  publicationOptions: (salesChannelId: number, categoryId: string) =>
+    request<PublicationOptions>(`/marketplace-publications/options?salesChannelId=${salesChannelId}&categoryId=${encodeURIComponent(categoryId)}`),
+  validatePublication: (requestBody: PublicationRequest) =>
+    request<void>('/marketplace-publications/validate', { method: 'POST', body: JSON.stringify(requestBody) }),
+  publishListing: (requestBody: PublicationRequest) =>
+    request<{ listing: MarketplaceListing; warnings: string[] }>('/marketplace-publications', { method: 'POST', body: JSON.stringify(requestBody) }),
   products: () => request<Page<Product>>('/products?size=100&sort=name,asc'),
   product: (id: number) => request<Product>(`/products/${id}`),
   createProduct: (product: { sku: string; name: string; description: string; basePrice: number; initialQuantity: number; minQuantity: number }) =>

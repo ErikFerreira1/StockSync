@@ -95,3 +95,41 @@ export type MarketplaceListing = {
   status: ListingStatus
   lastSyncedAt: string | null
 }
+
+export type PublicationField = {
+  id: string
+  name: string
+  required: boolean
+  valueType: string
+  values: { id: string; name: string }[]
+  units: string[]
+  hint: string
+}
+export type PublicationOptions = {
+  categoryId: string
+  categoryName: string
+  userProducts: boolean
+  maxNameLength: number
+  maxPictures: number
+  attributes: PublicationField[]
+  saleTerms: PublicationField[]
+  listingTypes: { id: string; name: string }[]
+  shippingModes: string[]
+  localPickUpAllowed: boolean
+}
+export type PublicationRequest = {
+  requestId: string
+  productId: number
+  salesChannelId: number
+  name: string
+  categoryId: string
+  price: number
+  listingTypeId: string
+  pictures: string[]
+  attributes: { id: string; valueId?: string; valueName?: string }[]
+  saleTerms: { id: string; valueId?: string; valueName?: string }[]
+  shippingMode: string
+  freeShipping: boolean
+  localPickUp: boolean
+  description: string
+}
