@@ -28,6 +28,7 @@ public class SecurityConfig {
             auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/mercadolivre/callback").permitAll();
             auth.requestMatchers("/integration-credentials/**", "/mercadolivre/authorize/**", "/mercadolivre/authorization-url/**").hasRole("ADMIN");
+            auth.requestMatchers("/marketplace-publications/**").hasAnyRole("ADMIN", "OPERATOR");
             if (demoEnabled) {
                 auth.requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll();
                 auth.requestMatchers(HttpMethod.PATCH, "/users/me/password").denyAll();

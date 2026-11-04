@@ -7,6 +7,7 @@ import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.SalesChannel;
 import com.erikferreira.stocksync.entity.enums.ChannelType;
 import com.erikferreira.stocksync.event.MarketplaceListingCreatedEvent;
+import com.erikferreira.stocksync.integration.MarketplacePublicationPort.PublishedListing;
 import com.erikferreira.stocksync.repository.MarketplaceListingRepository;
 import com.erikferreira.stocksync.service.exceptions.InvalidSalesChannelException;
 import com.erikferreira.stocksync.service.exceptions.MarketplaceListingAlreadyExistsException;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -95,6 +97,25 @@ public class MarketplaceListingService {
     }
 
     //helpers
+
+    @Transactional
+    public MarketplaceListingResponseDTO registerPublished(Long productId, Long channelId,
+            PublishedListing published) {
+        var existing = repository.findByListingIdAndSalesChannelId(published.id(), channelId);
+        if (existing.isPresent()) {
+            if (!existing.get().getProduct().getId().equals(productId)) {
+                throw new MarketplaceListingAlreadyExistsException("Published listing is linked to another product");
+            }
+            return toResponse(existing.get());
+        }
+        MarketplaceListing listing = MarketplaceListing.builder()
+                .product(productService.getProductEntityById(productId))
+                .salesChannel(salesChannelService.getSalesChannelEntityById(channelId))
+                .listingId(published.id()).listingUrl(published.url()).status(published.status())
+                .lastSyncedAt(Instant.now()).build();
+        // The creation request already sent stock. Do not emit an event that immediately repeats it.
+        return toResponse(repository.save(listing));
+    }
 
     private MarketplaceListingResponseDTO toResponse(MarketplaceListing listing) {
         return new MarketplaceListingResponseDTO(

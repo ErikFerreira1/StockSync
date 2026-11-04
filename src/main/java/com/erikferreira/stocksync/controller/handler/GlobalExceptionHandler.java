@@ -26,6 +26,25 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(jakarta.validation.ConstraintViolationException ex) {
+        return ResponseEntity.badRequest().body(createErrorResponse("Validation error",
+                "Invalid request parameters", 400));
+    }
+
+    @ExceptionHandler(PublicationValidationException.class)
+    public ResponseEntity<Map<String, Object>> handlePublicationValidation(PublicationValidationException ex) {
+        var body = createErrorResponse("Publication rejected", ex.getMessage(), 400);
+        body.put("issues", ex.getIssues());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(PublicationConflictException.class)
+    public ResponseEntity<Map<String, Object>> handlePublicationConflict(PublicationConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                createErrorResponse("Publication conflict", ex.getMessage(), 409));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         Map<String, Object> response = createErrorResponse(
