@@ -1,6 +1,9 @@
 package com.erikferreira.stocksync.integration;
 
 import com.erikferreira.stocksync.dto.marketplaceListing.MarketplaceListingInsertDTO;
+import com.erikferreira.stocksync.dto.order.OrderInsertDTO;
+import com.erikferreira.stocksync.dto.orderItem.OrderItemInsertDTO;
+import com.erikferreira.stocksync.service.OrderService;
 import com.erikferreira.stocksync.dto.product.ProductInsertDTO;
 import com.erikferreira.stocksync.dto.salesChannel.SalesChannelRequestDTO;
 import com.erikferreira.stocksync.dto.stockMovement.StockMovementInsertDTO;
@@ -26,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
@@ -38,6 +42,37 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest
 class CoreWorkflowIntegrationTest extends PostgreSQLIntegrationTest {
+    @Autowired private OrderService orderService;
+
+    @Test
+    void manualOrderShouldReturnItemsAndCancellationRestoreStock() {
+        String suffix = String.valueOf(System.nanoTime());
+        var product = productService.insert(new ProductInsertDTO("MANUAL-" + suffix, "Manual product", null, BigDecimal.TEN, 10, 0));
+        var channel = salesChannelService.insert(new SalesChannelRequestDTO("Manual-" + suffix, ChannelType.OTHER, null));
+        var created = orderService.insert(new OrderInsertDTO("MANUAL-" + suffix, channel.id(), Instant.now(),
+                List.of(new OrderItemInsertDTO(product.id(), 2, new BigDecimal("12.50")))));
+        assertThat(created.items()).singleElement().satisfies(item -> {
+            assertThat(item.productId()).isEqualTo(product.id());
+            assertThat(item.subtotal()).isEqualByComparingTo("25.00");
+        });
+        assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(8);
+        orderService.cancelOrder(created.id());
+        orderService.cancelOrder(created.id());
+        assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(10);
+    }
+
+    @Test
+    void orderPageShouldKeepRequestedDescendingOrderWithAllItems() {
+        String suffix = String.valueOf(System.nanoTime());
+        var product = productService.insert(new ProductInsertDTO("PAGE-" + suffix, "Page product", null, BigDecimal.TEN, 10, 0));
+        var channel = salesChannelService.insert(new SalesChannelRequestDTO("Page-" + suffix, ChannelType.OTHER, null));
+        for (int i = 0; i < 3; i++) orderService.insert(new OrderInsertDTO("PAGE-" + suffix + "-" + i,
+                channel.id(), Instant.now(), List.of(new OrderItemInsertDTO(product.id(), 1, BigDecimal.TEN))));
+        var page = orderService.findAllPaged(PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "id")));
+        assertThat(page.getContent()).hasSize(3);
+        assertThat(page.getContent()).extracting(item -> item.id()).isSortedAccordingTo(java.util.Comparator.reverseOrder());
+        assertThat(page.getContent()).allSatisfy(order -> assertThat(order.items()).hasSize(1));
+    }
 
     @MockitoBean
     private MarketplaceIntegrationPort marketplaceIntegrationPort;

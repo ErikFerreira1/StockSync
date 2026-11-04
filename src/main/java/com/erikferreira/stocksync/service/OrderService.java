@@ -28,6 +28,8 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,9 +55,11 @@ public class OrderService {
         Page<Order> page = repository.findAll(pageable);
 
         List<Order> ordersWithItems = repository.fetchItemsForOrders(page.getContent());
+        var ordersById = ordersWithItems.stream().collect(Collectors.toMap(Order::getId, Function.identity()));
 
         return new PageImpl<>(
-                ordersWithItems.stream().map(this::toResponse).toList(),
+                page.getContent().stream().map(order -> ordersById.getOrDefault(order.getId(), order))
+                        .map(this::toResponse).toList(),
                 pageable,
                 page.getTotalElements()
         );
@@ -155,7 +159,9 @@ public class OrderService {
                 .unitPrice(unitPrice)
                 .build();
 
-        return toItemResponseDTO(orderItemRepository.save(orderItem));
+        OrderItem savedItem = orderItemRepository.save(orderItem);
+        order.getItems().add(savedItem);
+        return toItemResponseDTO(savedItem);
     }
 
     private void copyDtoToEntity(OrderInsertDTO dto, Order entity, SalesChannel channel) {
