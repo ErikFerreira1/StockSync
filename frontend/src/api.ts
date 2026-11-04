@@ -1,4 +1,4 @@
-import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent, PublicationOptions, PublicationRequest } from './types'
+import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent, PublicationOptions, PublicationRequest, Order, OrderRequest, User } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
@@ -19,6 +19,17 @@ export class ApiError extends Error {
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
+}
+
+export function getSessionUser(): User | null {
+  try {
+    const payload = getToken()?.split('.')[1]
+    if (!payload) return null
+    const bytes = Uint8Array.from(atob(payload.replace(/-/g, '+').replace(/_/g, '/')), char => char.charCodeAt(0))
+    const decoded = JSON.parse(new TextDecoder().decode(bytes))
+    const role = ['ADMIN', 'OPERATOR', 'VIEWER'].find(value => decoded.roles?.includes(`ROLE_${value}`))
+    return typeof decoded.sub === 'string' ? { username: decoded.sub, role } : null
+  } catch { return null }
 }
 
 export function clearToken() {
@@ -69,6 +80,11 @@ export function getLoginError(error: unknown) {
 }
 
 export const api = {
+  orders: (page = 0) => request<Page<Order>>(`/orders?page=${page}&size=10&sort=id,desc`),
+  order: (id: number) => request<Order>(`/orders/${id}`),
+  createOrder: (order: OrderRequest) => request<Order>('/orders', { method: 'POST', body: JSON.stringify(order) }),
+  cancelOrder: (id: number) => request<Order>(`/orders/${id}/cancel`, { method: 'PATCH' }),
+  synchronizeOrders: (channelId: number) => request<void>(`/sales-channels/${channelId}/orders/synchronize`, { method: 'POST' }),
   publicationCategories: (salesChannelId: number, query: string) =>
     request<{ id: string; name: string }[]>(`/marketplace-publications/categories?salesChannelId=${salesChannelId}&query=${encodeURIComponent(query)}`),
   publicationOptions: (salesChannelId: number, categoryId: string) =>

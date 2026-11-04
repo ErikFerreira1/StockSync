@@ -133,3 +133,27 @@ export type PublicationRequest = {
   localPickUp: boolean
   description: string
 }
+
+export type OrderStatus = 'PENDING' | 'PAID' | 'CANCELED' | 'REFUNDED' | 'COMPLETED'
+export type OrderItem = {
+  id: number
+  productId: number
+  productName: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+}
+export type Order = {
+  id: number
+  salesChannelId: number
+  externalOrderId: string
+  orderDate: string
+  status: OrderStatus
+  items: OrderItem[]
+}
+export type OrderRequest = {
+  externalOrderId: string
+  salesChannelId: number
+  orderDate: string
+  items: { productId: number; quantity: number; unitPrice: number }[]
+}

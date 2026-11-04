@@ -299,3 +299,23 @@ td{height:54px;font-size:13px}
 .publication-review dd { margin: 0; overflow-wrap: anywhere; }
 .publication-dialog .publication-check { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-top: 14px; font-size: 14px; }
 .publication-check input { width: auto; }
+.orders-dialog { width: min(100%, 760px); max-width: 760px; max-height: 90vh; overflow-y: auto; }
+.orders-dialog > .form-error, .orders-error { color: #ba534a; white-space: pre-line; overflow-wrap: anywhere; }
+.orders-card .review-actions { flex-wrap: wrap; }
+.orders-notice { padding: 12px 14px; border: 1px solid #c9e3df; border-radius: 4px; background: #f1f8f7; color: #287c63; font-size: 14px; line-height: 1.5; }
+.orders-pagination, .order-meta, .order-item-numbers { display: flex; align-items: center; gap: 16px; }
+.orders-pagination { justify-content: space-between; margin-top: 18px; color: #68758a; font-size: 13px; }
+.orders-pagination > div { display: flex; gap: 8px; }
+.order-meta { flex-wrap: wrap; margin-bottom: 20px; color: #68758a; font-size: 14px; }
+.order-total { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; color: #344246; font-size: 16px; }
+.order-cancel-confirm { padding: 16px; border: 1px solid #e7c9bd; border-radius: 4px; background: #fff9f5; font-size: 14px; line-height: 1.5; }
+.order-cancel-confirm h3 { margin: 0; font-size: 16px; }
+.danger-action { background: #ad5148; }
+.danger-action:hover { background: #923f37; }
+.order-item-editor { margin: 16px 0; padding: 14px; border: 1px solid #dce3e3; border-radius: 4px; }
+.order-item-editor legend { padding: 0 6px; color: #506367; font-size: 13px; }
+.order-item-numbers > label { flex: 1; min-width: 0; }
+.order-review-items, .order-sync-failures { font-size: 14px; line-height: 1.6; }
+.order-sync-failures { margin-top: 18px; }
+.orders-dialog .connection-help { line-height: 1.6; }
+@media (max-width: 600px) { .orders-pagination { align-items: flex-start; flex-direction: column; } .order-item-numbers { align-items: stretch; flex-direction: column; gap: 0; } .orders-dialog { padding: 20px 16px; } .orders-dialog .review-actions { flex-wrap: wrap; } .orders-card .review-actions > button { flex: 1; } }
