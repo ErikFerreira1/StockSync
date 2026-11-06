@@ -99,6 +99,57 @@ class DemoModeIntegrationTest extends PostgreSQLIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Autowired private com.erikferreira.stocksync.repository.OrderRepository orderRepository;
+
+    @Test
+    void simulatedSaleShouldImportAsPaidAndDeductStockOnlyOnce() throws Exception {
+        var listing = listingRepository.findByListingIdAndSalesChannelType("DEMO-MLB-KEYBOARD",
+                com.erikferreira.stocksync.entity.enums.ChannelType.MERCADO_LIVRE).orElseThrow();
+        Long channelId = listing.getSalesChannel().getId();
+        Long productId = listing.getProduct().getId();
+        String token = loginAsDemoUser();
+        String body = objectMapper.writeValueAsString(java.util.Map.of(
+                "salesChannelId", channelId, "listingId", listing.getListingId(), "quantity", 1));
+        mockMvc.perform(post("/demo/orders").contentType("application/json").content(body))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/demo/orders").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                        .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_VIEWER")))
+                        .contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/demo/orders/listings").param("salesChannelId", channelId.toString())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].listingId").exists());
+        mockMvc.perform(post("/demo/orders").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(body.replace("\"quantity\":1", "\"quantity\":0")))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/demo/orders").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(body.replace("DEMO-MLB-KEYBOARD", "missing")))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/demo/orders").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "salesChannelId", channelId + 1000, "listingId", listing.getListingId(), "quantity", 1))))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/demo/orders").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "salesChannelId", channelId, "listingId", listing.getListingId(), "quantity", 3))))
+                .andExpect(status().isConflict());
+        String response = mockMvc.perform(post("/demo/orders").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(body))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String externalId = objectMapper.readTree(response).get("externalOrderId").asText();
+        assertThat(orderRepository.existsBySalesChannelIdAndExternalOrderId(channelId, externalId)).isFalse();
+        assertThat(productRepository.findById(productId).orElseThrow().getInventory().getAvailableQuantity()).isEqualTo(2);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/sales-channels/" + channelId + "/orders/synchronize")
+                            .header("Authorization", "Bearer " + token)).andExpect(status().isNoContent());
+        }
+        var imported = orderRepository.findAll().stream().filter(o -> o.getExternalOrderId().equals(externalId)).findFirst().orElseThrow();
+        assertThat(imported.getStatus()).isEqualTo(com.erikferreira.stocksync.entity.enums.OrderStatus.PAID);
+        assertThat(imported.isStockDeducted()).isTrue();
+        assertThat(productRepository.findById(productId).orElseThrow().getInventory().getAvailableQuantity()).isEqualTo(1);
+        assertThat(demoMarketplaceAdapter.getCurrentStock(listing.getListingId())).isEqualTo(1);
+    }
+
     private String loginAsDemoUser() throws Exception {
         String response = mockMvc.perform(post("/auth/login")
                         .contentType("application/json")

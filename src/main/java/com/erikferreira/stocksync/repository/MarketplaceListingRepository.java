@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface MarketplaceListingRepository extends JpaRepository<MarketplaceListing, Long> {
 
+    List<MarketplaceListing> findBySalesChannelId(Long salesChannelId);
+
     Optional<MarketplaceListing> findByListingIdAndSalesChannelType(String listingId, ChannelType salesChannelType);
 
     Optional<MarketplaceListing> findByListingIdAndSalesChannelId(String listingId, Long salesChannelId);

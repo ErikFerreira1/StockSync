@@ -55,6 +55,17 @@ class SecurityIntegrationTest extends PostgreSQLIntegrationTest {
     @Autowired
     private JwtDecoder jwtDecoder;
 
+    @Test
+    void demoSaleEndpointsShouldNotExistOutsideDemoProfile() throws Exception {
+        var admin = org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
+        mvc.perform(get("/demo/orders/listings").param("salesChannelId", "1").with(admin))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/demo/orders").with(admin).contentType("application/json")
+                        .content("{\"salesChannelId\":1,\"listingId\":\"test\",\"quantity\":1}"))
+                .andExpect(status().isNotFound());
+    }
+
     @BeforeEach
     void setUpUsers() {
         clientAddress = "192.0.2." + CLIENT_SEQUENCE.incrementAndGet();

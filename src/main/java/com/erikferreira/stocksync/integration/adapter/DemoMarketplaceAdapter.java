@@ -4,6 +4,8 @@ import com.erikferreira.stocksync.dto.demo.DemoMarketplaceListingResponseDTO;
 import com.erikferreira.stocksync.entity.enums.ListingStatus;
 import com.erikferreira.stocksync.integration.MarketplaceIntegrationPort;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderDTO;
+import com.erikferreira.stocksync.integration.dto.ExternalOrderItemDTO;
+import com.erikferreira.stocksync.service.exceptions.InvalidOrderStatusException;
 import com.erikferreira.stocksync.service.exceptions.MarketplaceListingNotFoundException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -20,10 +23,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DemoMarketplaceAdapter implements MarketplaceIntegrationPort {
 
     private final Map<String, DemoListing> listings = new ConcurrentHashMap<>();
+    private final Map<Long, Map<String, ExternalOrderDTO>> orders = new ConcurrentHashMap<>();
 
     @Override
     public List<ExternalOrderDTO> fetchNewOrders(Long salesChannelId) {
-        return List.of();
+        // Keep orders available for retries; the importer handles already imported IDs.
+        return orders.getOrDefault(salesChannelId, Map.of()).values().stream()
+                .sorted(Comparator.comparing(ExternalOrderDTO::orderDate)).toList();
+    }
+
+    public ExternalOrderDTO simulateSale(Long channelId, String listingId, Integer quantity) {
+        DemoListing listing = findListing(listingId);
+        if (quantity == null || quantity < 1 || quantity > listing.availableQuantity()
+                || listing.status() != ListingStatus.ACTIVE) {
+            throw new InvalidOrderStatusException("Choose an active demo listing and a quantity within its available stock");
+        }
+        ExternalOrderDTO order = new ExternalOrderDTO("DEMO-ORDER-" + UUID.randomUUID(), Instant.now(), "paid",
+                List.of(new ExternalOrderItemDTO(listingId, quantity, listing.price())));
+        orders.computeIfAbsent(channelId, id -> new ConcurrentHashMap<>()).put(order.externalOrderId(), order);
+        return order;
     }
 
     @Override
