@@ -356,6 +356,8 @@ O badge no início deste README mostra o resultado do CI na branch `main` após 
 
 O modo real exige uma aplicação configurada no Mercado Livre, as respectivas credenciais e a autorização da conta que será conectada.
 
+Uma **conta de teste do Mercado Livre** também utiliza esse fluxo real: a autorização OAuth deve ser feita com o vendedor de teste em um canal separado. Isso é diferente do perfil `demo`, que usa o simulador local e não publica na plataforma. Confira a identidade da conta autorizada antes de publicar; uma sessão já aberta no Mercado Livre pode reutilizar a conta principal. A criação do anúncio não garante ativação imediata: ele pode retornar pausado enquanto a plataforma processa as fotos.
+
 1. Crie um arquivo `.env` com base em [.env.example](.env.example).
 2. Configure `SPRING_PROFILES_ACTIVE=default` para utilizar o adaptador real. No Compose, deixar essa variável ausente ou vazia seleciona o perfil `demo`.
 3. Configure o acesso ao PostgreSQL, as credenciais iniciais do administrador, `JWT_SECRET`, `ENCRYPTION_KEY` e `MERCADO_LIVRE_REDIRECT_URI`.
