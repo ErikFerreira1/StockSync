@@ -7,7 +7,7 @@ import type { Order, Page, Product, SalesChannel } from '../src/types'
 
 vi.mock('../src/api', async () => {
   const actual = await vi.importActual<typeof import('../src/api')>('../src/api')
-  return { ...actual, api: { ...actual.api, orders: vi.fn(), order: vi.fn(), createOrder: vi.fn(), cancelOrder: vi.fn(), synchronizeOrders: vi.fn(), failedSyncs: vi.fn() } }
+  return { ...actual, api: { ...actual.api, orders: vi.fn(), order: vi.fn(), createOrder: vi.fn(), cancelOrder: vi.fn(), confirmOrderPayment: vi.fn(), synchronizeOrders: vi.fn(), failedSyncs: vi.fn() } }
 })
 
 const products: Product[] = [
@@ -19,7 +19,7 @@ const channels: SalesChannel[] = [
   { id: 2, name: 'Balcão', type: 'OTHER', active: true, baseUrl: null },
   { id: 3, name: 'Canal inativo', type: 'MERCADO_LIVRE', active: false, baseUrl: null },
 ]
-const order: Order = { id: 21, salesChannelId: 1, externalOrderId: 'ML-21', status: 'PENDING', orderDate: '2026-11-04T12:00:00Z',
+const order: Order = { id: 21, salesChannelId: 1, externalOrderId: 'ML-21', status: 'PENDING', stockDeducted: false, orderDate: '2026-11-04T12:00:00Z',
   items: [{ id: 5, productId: 1, productName: 'Cabo USB-C', quantity: 2, unitPrice: 10, subtotal: 20 }] }
 const page = (content: Order[], current = 0, pages = 1): Page<Order> => ({ content, number: current, size: 10, totalPages: pages, totalElements: pages === 1 ? content.length : 21 })
 
@@ -31,6 +31,7 @@ beforeEach(() => {
   vi.mocked(api.orders).mockReset().mockResolvedValue(page([order]))
   vi.mocked(api.order).mockReset().mockResolvedValue(order)
   vi.mocked(api.createOrder).mockReset().mockResolvedValue(order)
+  vi.mocked(api.confirmOrderPayment).mockReset().mockResolvedValue({ ...order, status: 'PAID', stockDeducted: true })
   vi.mocked(api.cancelOrder).mockReset().mockResolvedValue({ ...order, status: 'CANCELED' })
   vi.mocked(api.synchronizeOrders).mockReset().mockResolvedValue(undefined)
   vi.mocked(api.failedSyncs).mockReset().mockResolvedValue({ content: [], number: 0, size: 10, totalPages: 0, totalElements: 0 })
@@ -102,10 +103,17 @@ describe('Orders list and navigation', () => {
     expect(screen.queryByRole('button', { name: 'Novo pedido' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Sincronizar pedidos' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Cancelar no StockSync' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Confirmar pagamento' })).toBeNull()
   })
 })
 
 describe('Manual order creation', () => {
+  it('allows creating a pending order for an active product with zero stock', async () => {
+    render(<OrdersPage {...props()} products={products.map(product => ({ ...product, availableQuantity: 0 }))}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo pedido' }))
+    expect(screen.getByRole('option', { name: 'Cabo USB-C · 0 un. disponíveis' })).toBeTruthy()
+    expect(screen.getByText(/O cadastro não baixa nem reserva estoque/)).toBeTruthy()
+  })
   it('reviews multiple items and only sends the request after explicit confirmation', async () => {
     const p = props()
     render(<OrdersPage {...p}/>)
@@ -118,14 +126,14 @@ describe('Manual order creation', () => {
     expect(screen.getByRole('heading', { name: 'Revisar pedido' })).toBeTruthy()
     expect(screen.getByText(/23,75/)).toBeTruthy()
     expect(api.createOrder).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: 'Confirmar pedido e baixar estoque' }))
+    await user.click(screen.getByRole('button', { name: 'Criar pedido pendente' }))
     await waitFor(() => expect(api.createOrder).toHaveBeenCalledWith({ externalOrderId: 'MANUAL-21', salesChannelId: 2,
       orderDate: new Date('2026-11-04T09:00').toISOString(), items: [{ productId: 1, quantity: 2, unitPrice: 10 }, { productId: 2, quantity: 3, unitPrice: 1.25 }] }))
     expect(p.onStockChanged).toHaveBeenCalledOnce()
     expect(p.onSelect).toHaveBeenCalledWith(21)
   })
 
-  it('prevents quantities above known stock and prevents duplicate product selections', async () => {
+  it('allows pending quantities above stock but prevents duplicate product selections', async () => {
     render(<OrdersPage {...props()}/>)
     const user = await fillOrder()
     await user.click(screen.getByRole('button', { name: 'Adicionar item' }))
@@ -135,17 +143,17 @@ describe('Manual order creation', () => {
     await user.clear(screen.getByLabelText('Quantidade do item 1'))
     await user.type(screen.getByLabelText('Quantidade do item 1'), '5')
     await user.click(screen.getByRole('button', { name: 'Revisar pedido' }))
-    expect(screen.queryByRole('heading', { name: 'Revisar pedido' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Revisar pedido' })).toBeTruthy()
     expect(api.createOrder).not.toHaveBeenCalled()
   })
 
-  it('keeps entered data when the server detects insufficient stock', async () => {
-    vi.mocked(api.createOrder).mockRejectedValue(new ApiError(409, 'Insufficient stock. Available: 1'))
+  it('keeps entered data when the server rejects a duplicate identifier', async () => {
+    vi.mocked(api.createOrder).mockRejectedValue(new ApiError(409, 'duplicate value'))
     render(<OrdersPage {...props()}/>)
     const user = await fillOrder()
     await user.click(screen.getByRole('button', { name: 'Revisar pedido' }))
-    await user.click(screen.getByRole('button', { name: 'Confirmar pedido e baixar estoque' }))
-    expect((await screen.findByRole('alert')).textContent).toContain('Estoque insuficiente')
+    await user.click(screen.getByRole('button', { name: 'Criar pedido pendente' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Já existe um pedido')
     expect((screen.getByLabelText('Identificador do pedido') as HTMLInputElement).value).toBe('MANUAL-21')
     expect((screen.getByLabelText('Quantidade do item 1') as HTMLInputElement).value).toBe('2')
     expect(api.createOrder).toHaveBeenCalledOnce()
@@ -157,7 +165,7 @@ describe('Manual order creation', () => {
     render(<OrdersPage {...props()}/>)
     const user = await fillOrder()
     await user.click(screen.getByRole('button', { name: 'Revisar pedido' }))
-    await user.click(screen.getByRole('button', { name: 'Confirmar pedido e baixar estoque' }))
+    await user.click(screen.getByRole('button', { name: 'Criar pedido pendente' }))
     expect(screen.getByRole('button', { name: 'Cadastrando…' }).hasAttribute('disabled')).toBe(true)
     expect(screen.getByRole('button', { name: 'Fechar cadastro' }).hasAttribute('disabled')).toBe(true)
     expect(api.createOrder).toHaveBeenCalledOnce()
@@ -166,6 +174,67 @@ describe('Manual order creation', () => {
 })
 
 describe('Order cancellation and import', () => {
+  it('only records payment after confirmation, then updates stock and paid status', async () => {
+    const p = props({ selectedId: 21 })
+    render(<OrdersPage {...p}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirmar pagamento' }))
+    expect(screen.getByText(/não efetua cobrança nem altera o pagamento/)).toBeTruthy()
+    expect(api.confirmOrderPayment).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pagamento recebido' }))
+    expect(await screen.findByText('Pago')).toBeTruthy()
+    expect(api.confirmOrderPayment).toHaveBeenCalledWith(21)
+    expect(p.onStockChanged).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('button', { name: 'Confirmar pagamento' })).toBeNull()
+  })
+
+  it('keeps a failed payment pending and does not announce a stock change', async () => {
+    vi.mocked(api.confirmOrderPayment).mockRejectedValue(new ApiError(409, 'Insufficient stock'))
+    const p = props({ selectedId: 21 })
+    render(<OrdersPage {...p}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirmar pagamento' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pagamento recebido' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Estoque insuficiente')
+    expect(p.onStockChanged).not.toHaveBeenCalled()
+    expect(screen.queryByText('Pago')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Registrar pagamento recebido' }).hasAttribute('disabled')).toBe(false)
+  })
+
+  it('prevents another payment submission while the response is pending', async () => {
+    let finish!: (result: Order) => void
+    vi.mocked(api.confirmOrderPayment).mockReturnValue(new Promise(resolve => { finish = resolve }))
+    render(<OrdersPage {...props({ selectedId: 21 })}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirmar pagamento' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar pagamento recebido' }))
+    expect(screen.getByRole('button', { name: 'Confirmando…' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Fechar detalhes' }).hasAttribute('disabled')).toBe(true)
+    expect(api.confirmOrderPayment).toHaveBeenCalledOnce()
+    await act(async () => { finish({ ...order, status: 'PAID', stockDeducted: true }) })
+  })
+
+  it('explains existing legacy deductions before recording payment', async () => {
+    vi.mocked(api.order).mockResolvedValue({ ...order, stockDeducted: true })
+    render(<OrdersPage {...props({ selectedId: 21 })}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirmar pagamento' }))
+    expect(screen.getByText(/O estoque já foi baixado e não será descontado novamente/)).toBeTruthy()
+    expect(api.confirmOrderPayment).not.toHaveBeenCalled()
+  })
+
+  it('cancels pending orders without promising to return stock', async () => {
+    render(<OrdersPage {...props({ selectedId: 21 })}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar no StockSync' }))
+    expect(screen.getByText(/Este pedido não baixou estoque; o cancelamento não altera o saldo/)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }))
+    expect(await screen.findByText('Pedido pendente cancelado. O estoque não foi alterado.')).toBeTruthy()
+  })
+
+  it('explains restocking only when the order actually deducted stock', async () => {
+    vi.mocked(api.order).mockResolvedValue({ ...order, status: 'PAID', stockDeducted: true })
+    render(<OrdersPage {...props({ selectedId: 21 })}/>)
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar no StockSync' }))
+    expect(screen.getByText(/As quantidades serão devolvidas ao estoque local/)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar cancelamento' }))
+    expect(await screen.findByText('Pedido cancelado no StockSync. As quantidades foram devolvidas ao estoque local.')).toBeTruthy()
+  })
   it('requires confirmation and explains that cancellation affects only StockSync', async () => {
     const p = props({ selectedId: 21 })
     render(<OrdersPage {...p}/>)

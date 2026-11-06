@@ -159,6 +159,7 @@ export type Order = {
   orderDate: string
   status: OrderStatus
   items: OrderItem[]
+  stockDeducted: boolean
 }
 export type OrderRequest = {
   externalOrderId: string

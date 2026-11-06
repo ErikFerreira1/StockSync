@@ -9,6 +9,11 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Orders HTTP contracts', () => {
+  it('uses the explicit payment confirmation endpoint', async () => {
+    await api.confirmOrderPayment(21)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/orders/21/confirm-payment')
+    expect(fetchMock.mock.calls[0][1].method).toBe('PATCH')
+  })
   it('encodes sync event filters safely and keeps stable pagination sorting', async () => {
     await api.syncEvents({ status: 'FAILURE', productId: '', salesChannelId: '2', externalOrderId: ' EXT&21 ', scope: 'ORDER' }, 1)
     const url = new URL(fetchMock.mock.calls[0][0], 'https://example.com')

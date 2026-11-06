@@ -13,7 +13,7 @@ Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, est
 | Área | O que o sistema oferece |
 | --- | --- |
 | Produtos e estoque | Cadastro de produtos, entradas e saídas, estoque mínimo e histórico de movimentações. |
-| Pedidos | Registro, importação do Mercado Livre e cancelamento com reposição de estoque. |
+| Pedidos | Registro pendente, confirmação de pagamento com baixa de estoque, importação do Mercado Livre e cancelamento. |
 | Canais e anúncios | Gestão de canais, vínculo de anúncios e sincronização de quantidade, pausa e reativação. |
 | Integração | OAuth com Mercado Livre, renovação de tokens e credenciais criptografadas. |
 | Controle de acesso | Perfis de administrador, operador e consulta, com autenticação JWT. |
@@ -21,7 +21,7 @@ Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, est
 
 ### Como funciona
 
-Uma venda ou movimentação altera o estoque local. Após a confirmação no banco, eventos acionam a sincronização dos anúncios elegíveis e o resultado fica registrado para consulta. Desativar um produto pausa seus anúncios; reativá-lo recupera os anúncios pausados por esse fluxo com a quantidade atual.
+A confirmação de pagamento de um pedido ou uma movimentação altera o estoque local. Criar um pedido pendente não baixa nem reserva estoque. Após a confirmação da transação no banco, eventos acionam a sincronização dos anúncios elegíveis e o resultado fica registrado para consulta. Desativar um produto pausa seus anúncios; reativá-lo recupera os anúncios pausados por esse fluxo com a quantidade atual.
 
 Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atualiza o anúncio vinculado para `10`. A integração atual sincroniza **estoque e status**, sem atualização automática de preços.
 
@@ -91,11 +91,15 @@ O preço-base é um atributo do produto local. A sincronização implementada co
 
 ### Pedidos e movimentações
 
-- Registro e consulta de pedidos com seus itens e quantidades.
-- Baixa de estoque associada à venda.
-- Cancelamento de pedidos com reposição das quantidades ao estoque.
-- Importação de pedidos do Mercado Livre, acionada pela API.
+- Registro e consulta de pedidos com seus itens e quantidades. Novos pedidos ficam como `PENDING`, sem baixar nem reservar estoque.
+- Em **Pedidos → detalhes → Confirmar pagamento**, ADMIN e OPERATOR podem registrar um pagamento já recebido. A ação verifica todos os itens, baixa o estoque e marca o pedido como `PAID` na mesma transação. Saldo insuficiente mantém o pedido pendente, sem baixas parciais; repetir a confirmação não desconta novamente.
+- Confirmação disponível também pela API em `PATCH /orders/{id}/confirm-payment`. Ela registra o pagamento localmente, sem efetuar cobrança ou alterar pagamentos no Mercado Livre.
+- Cancelamento de pedidos pendentes ou pagos, com reposição somente quando houver uma baixa ativa. Cancelar um pendente novo não altera o estoque; repetir o cancelamento não devolve quantidades novamente. A ação não cancela a venda no Mercado Livre nem emite reembolso.
+- Importação de pedidos pagos do Mercado Livre, acionada pela API, com criação e confirmação de pagamento na mesma transação. Falta de estoque desfaz a importação daquele pedido.
+- Compatibilidade com pedidos antigos: a migração V12 identifica as baixas existentes pelo histórico de movimentações, preservando saldos e status. Confirmar um pendente antigo que já teve baixa não desconta o estoque novamente.
 - Proteções contra importação duplicada e cenários de concorrência, verificadas por testes de integração.
+
+Veja os detalhes da interface e do contrato em [Pedidos na interface web](docs/ORDERS_WEB.md).
 
 ### Integração e rastreabilidade
 

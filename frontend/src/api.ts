@@ -91,6 +91,7 @@ export const api = {
   order: (id: number) => request<Order>(`/orders/${id}`),
   createOrder: (order: OrderRequest) => request<Order>('/orders', { method: 'POST', body: JSON.stringify(order) }),
   cancelOrder: (id: number) => request<Order>(`/orders/${id}/cancel`, { method: 'PATCH' }),
+  confirmOrderPayment: (id: number) => request<Order>(`/orders/${id}/confirm-payment`, { method: 'PATCH' }),
   synchronizeOrders: (channelId: number) => request<void>(`/sales-channels/${channelId}/orders/synchronize`, { method: 'POST' }),
   publicationCategories: (salesChannelId: number, query: string) =>
     request<{ id: string; name: string }[]>(`/marketplace-publications/categories?salesChannelId=${salesChannelId}&query=${encodeURIComponent(query)}`),

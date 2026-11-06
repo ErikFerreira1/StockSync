@@ -49,6 +49,8 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
   const [detailError, setDetailError] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [canceling, setCanceling] = useState(false)
+  const [confirmPayment, setConfirmPayment] = useState(false)
+  const [paying, setPaying] = useState(false)
   const [synchronizing, setSynchronizing] = useState(false)
   const [syncDialog, setSyncDialog] = useState(false)
   const [syncChannelId, setSyncChannelId] = useState('')
@@ -76,7 +78,7 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
 
   useEffect(() => {
     const sequence = ++detailSequence.current
-    setDetail(null); setDetailError(''); setConfirmCancel(false)
+    setDetail(null); setDetailError(''); setConfirmCancel(false); setConfirmPayment(false)
     if (selectedId === undefined) { setDetailLoading(false); return }
     setDetailLoading(true)
     api.order(selectedId).then(result => { if (mounted.current && sequence === detailSequence.current) setDetail(result) })
@@ -91,10 +93,26 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
     try {
       const canceled = await api.cancelOrder(detail.id)
       if (!mounted.current) return
-      setDetail(canceled); setConfirmCancel(false); setNotice('Pedido cancelado no StockSync. As quantidades foram devolvidas ao estoque local.')
+      setDetail(canceled); setConfirmCancel(false); setNotice(detail.stockDeducted
+        ? 'Pedido cancelado no StockSync. As quantidades foram devolvidas ao estoque local.'
+        : 'Pedido pendente cancelado. O estoque não foi alterado.')
       reload(); onStockChanged()
     } catch (cause) { if (mounted.current) setDetailError(message(cause)) }
     finally { if (mounted.current) setCanceling(false) }
+  }
+
+  async function pay() {
+    if (!detail || !writable || !confirmPayment || paying || canceling) return
+    setPaying(true); setDetailError('')
+    try {
+      const paid = await api.confirmOrderPayment(detail.id)
+      if (!mounted.current) return
+      setDetail(paid); setConfirmPayment(false)
+      setNotice(detail.stockDeducted ? 'Pagamento registrado. O estoque já havia sido baixado e não foi descontado novamente.'
+        : 'Pagamento confirmado. As quantidades foram baixadas do estoque local.')
+      reload(); onStockChanged()
+    } catch (cause) { if (mounted.current) setDetailError(message(cause)) }
+    finally { if (mounted.current) setPaying(false) }
   }
 
   async function synchronize() {
@@ -122,7 +140,7 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
       <div className="domain-card-head"><div><h2>Pedidos de venda</h2><p className="muted">Acompanhe os itens vendidos e seus efeitos no estoque.</p></div>
         <div className="review-actions"><button className="filter-button" onClick={reload} disabled={loading || synchronizing}><RefreshCw size={15}/> Atualizar pedidos</button>
           {writable && <><button className="filter-button" onClick={() => { setSyncDialog(true); setSyncError(''); setSyncNotice(''); setShowSyncFailures(false) }} disabled={!channels.some(c => c.active && c.type === 'MERCADO_LIVRE')}><RefreshCw size={15}/> Sincronizar pedidos</button>
-            <button className="primary" onClick={() => { setCreating(true); setNotice('') }} disabled={!products.some(p => p.active && p.availableQuantity > 0) || !channels.some(c => c.active)}><Plus size={15}/> Novo pedido</button></>}
+            <button className="primary" onClick={() => { setCreating(true); setNotice('') }} disabled={!products.some(p => p.active) || !channels.some(c => c.active)}><Plus size={15}/> Novo pedido</button></>}
         </div></div>
       {notice && <p className="orders-notice" role="status">{notice}</p>}
       {error ? <div className="orders-error" role="alert"><p>{error}</p><button className="filter-button" onClick={reload}>Tentar novamente</button></div>
@@ -137,17 +155,22 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
     </section>
 
     {creating && <OrderCreateDialog products={products} channels={channels} onClose={() => setCreating(false)} onCreated={order => {
-      setCreating(false); setPage(0); reload(); setNotice('Pedido cadastrado. As quantidades foram baixadas do estoque local.'); onStockChanged(); onSelect(order.id)
+      setCreating(false); setPage(0); reload(); setNotice('Pedido pendente cadastrado, sem baixar ou reservar estoque.'); onStockChanged(); onSelect(order.id)
     }}/>}
 
     {selectedId !== undefined && <div className="overlay"><section className="dialog orders-dialog" role="dialog" aria-modal="true" aria-labelledby="order-detail-title">
-      <div className="review-top"><div><p className="date">PEDIDOS / DETALHES</p><h2 id="order-detail-title">{detail?.externalOrderId || `Pedido #${selectedId}`}</h2></div><button className="close" aria-label="Fechar detalhes" disabled={canceling} onClick={() => onSelect()}><X size={19}/></button></div>
+      <div className="review-top"><div><p className="date">PEDIDOS / DETALHES</p><h2 id="order-detail-title">{detail?.externalOrderId || `Pedido #${selectedId}`}</h2></div><button className="close" aria-label="Fechar detalhes" disabled={canceling || paying} onClick={() => onSelect()}><X size={19}/></button></div>
       {detailLoading && <p className="muted" role="status">Carregando detalhes…</p>}{detailError && <p className="form-error" role="alert">{detailError}</p>}
       {detail && <><div className="order-meta"><Status status={detail.status}/><span>{date(detail.orderDate)}</span><span>{channels.find(c => c.id === detail.salesChannelId)?.name || `Canal #${detail.salesChannelId}`}</span></div>
         <div className="table-scroll"><table><thead><tr><th>PRODUTO</th><th>QTD.</th><th>PREÇO UNITÁRIO</th><th>SUBTOTAL</th></tr></thead><tbody>{detail.items.map(item => <tr key={item.id}><td>{item.productName}</td><td>{item.quantity}</td><td>{money(item.unitPrice)}</td><td>{money(item.subtotal)}</td></tr>)}</tbody></table></div>
         <p className="order-total">Total do pedido <b>{money(total(detail))}</b></p>
-        {writable && canCancel(detail) && (confirmCancel ? <div className="order-cancel-confirm" role="group" aria-label="Confirmar cancelamento"><h3>Cancelar este pedido no StockSync?</h3>
-          <p>As quantidades serão devolvidas ao estoque local e enviadas aos anúncios elegíveis. Esta ação não cancela a venda no Mercado Livre nem gera reembolso.</p>
+        <p className="connection-help">{detail.stockDeducted ? 'Este pedido já teve baixa de estoque. A confirmação do pagamento não repetirá a baixa.' : 'Este pedido não possui baixa de estoque ativa. Pedidos pendentes não reservam quantidades.'}</p>
+        {writable && typeof detail.stockDeducted === 'boolean' && detail.status === 'PENDING' && !confirmCancel && !confirmPayment && <div className="review-actions"><button className="primary" onClick={() => setConfirmPayment(true)}>Confirmar pagamento</button></div>}
+        {writable && confirmPayment && <div className="order-cancel-confirm" role="group" aria-label="Confirmar pagamento"><h3>O pagamento deste pedido já foi recebido?</h3>
+          <p>Esta ação registra o pagamento no StockSync; não efetua cobrança nem altera o pagamento no Mercado Livre. {detail.stockDeducted ? 'O estoque já foi baixado e não será descontado novamente.' : 'O saldo será conferido e baixado agora, com atualização dos anúncios elegíveis. Se faltar estoque, o pedido continuará pendente.'}</p>
+          <div className="review-actions"><button className="filter-button" disabled={paying} onClick={() => setConfirmPayment(false)}>Voltar</button><button className="primary" disabled={paying} onClick={() => void pay()}>{paying ? 'Confirmando…' : 'Registrar pagamento recebido'}</button></div></div>}
+        {writable && typeof detail.stockDeducted === 'boolean' && canCancel(detail) && !confirmPayment && (confirmCancel ? <div className="order-cancel-confirm" role="group" aria-label="Confirmar cancelamento"><h3>Cancelar este pedido no StockSync?</h3>
+          <p>{detail.stockDeducted ? 'As quantidades serão devolvidas ao estoque local e enviadas aos anúncios elegíveis.' : 'Este pedido não baixou estoque; o cancelamento não altera o saldo.'} Esta ação não cancela a venda no Mercado Livre nem gera reembolso.</p>
           <div className="review-actions"><button className="filter-button" disabled={canceling} onClick={() => setConfirmCancel(false)}>Manter pedido</button><button className="primary danger-action" disabled={canceling} onClick={() => void cancel()}>{canceling ? 'Cancelando…' : 'Confirmar cancelamento'}</button></div>
         </div> : <div className="review-actions"><button className="filter-button" onClick={() => setConfirmCancel(true)}>Cancelar no StockSync</button></div>)}</>}
     </section></div>}
@@ -178,7 +201,7 @@ function OrderCreateDialog({ products, channels, onClose, onCreated }: {
   const [externalId, setExternalId] = useState('')
   const [channelId, setChannelId] = useState('')
   const [orderDate, setOrderDate] = useState(localDateTime)
-  const available = products.filter(product => product.active && product.availableQuantity > 0)
+  const available = products.filter(product => product.active)
   const subtotal = items.reduce((sum, item) => sum + Math.round(Number(item.unitPrice || 0) * 100) * Number(item.quantity || 0), 0) / 100
 
   function update(key: number, patch: Partial<DraftItem>) { setReview(null); setItems(current => current.map(item => item.key === key ? { ...item, ...patch } : item)) }
@@ -188,8 +211,8 @@ function OrderCreateDialog({ products, channels, onClose, onCreated }: {
     if (new Set(items.map(item => item.productId)).size !== items.length) { setError('Use uma única linha para cada produto.'); return }
     for (const item of items) {
       const product = available.find(product => product.id === Number(item.productId))
-      if (!product || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 || Number(item.quantity) > product.availableQuantity) {
-        setError('Confira os produtos e as quantidades disponíveis.'); return
+      if (!product || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) {
+        setError('Confira os produtos e informe quantidades inteiras maiores que zero.'); return
       }
       if (!Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0 || item.unitPrice.trim() === '') { setError('Informe um preço unitário válido.'); return }
     }
@@ -210,19 +233,19 @@ function OrderCreateDialog({ products, channels, onClose, onCreated }: {
   return <div className="overlay"><section className="dialog product-edit-dialog orders-dialog order-create-dialog" role="dialog" aria-modal="true" aria-labelledby="new-order-title">
     <div className="review-top"><div><p className="date">PEDIDOS / CADASTRO</p><h2 id="new-order-title">{review ? 'Revisar pedido' : 'Novo pedido'}</h2></div><button className="close" aria-label="Fechar cadastro" disabled={saving} onClick={onClose}><X size={19}/></button></div>
     {error && <p className="form-error" role="alert">{error}</p>}
-    {review ? <><p className="connection-help">Ao confirmar, o pedido será registrado como pendente e as quantidades serão baixadas do estoque local. Os anúncios elegíveis também receberão o novo saldo.</p>
+    {review ? <><p className="connection-help">O pedido será registrado como pendente, sem baixar nem reservar estoque. A disponibilidade será conferida ao confirmar o pagamento.</p>
       <dl className="publication-review"><dt>Identificador</dt><dd>{review.externalOrderId}</dd><dt>Canal</dt><dd>{channels.find(c => c.id === review.salesChannelId)?.name}</dd><dt>Data</dt><dd>{date(review.orderDate)}</dd></dl>
       <ul className="order-review-items">{review.items.map(item => <li key={item.productId}>{products.find(p => p.id === item.productId)?.name} · {item.quantity} un. × {money(item.unitPrice)}</li>)}</ul>
-      <p className="order-total">Total <b>{money(subtotal)}</b></p><div className="review-actions"><button className="filter-button" disabled={saving} onClick={() => setReview(null)}>Voltar e editar</button><button className="primary" disabled={saving} onClick={() => void save()}>{saving ? 'Cadastrando…' : 'Confirmar pedido e baixar estoque'}</button></div>
+      <p className="order-total">Total <b>{money(subtotal)}</b></p><div className="review-actions"><button className="filter-button" disabled={saving} onClick={() => setReview(null)}>Voltar e editar</button><button className="primary" disabled={saving} onClick={() => void save()}>{saving ? 'Cadastrando…' : 'Criar pedido pendente'}</button></div>
     </> : <form onSubmit={prepare}>
-      <p className="connection-help">Registre uma venda existente. Isso não cria uma venda no Mercado Livre. A confirmação baixa as quantidades do estoque.</p>
+      <p className="connection-help">Crie um pedido pendente. O cadastro não baixa nem reserva estoque e não cria uma venda no Mercado Livre. A baixa acontece somente ao confirmar o pagamento recebido.</p>
       <label className="edit-field">Identificador do pedido<input required maxLength={255} value={externalId} onChange={event => setExternalId(event.target.value)} placeholder="Número do pedido no canal"/></label>
       <label className="edit-field">Canal de venda<select required value={channelId} onChange={event => setChannelId(event.target.value)}><option value="">Selecione o canal</option>{channels.filter(c => c.active).map(channel => <option key={channel.id} value={channel.id}>{channel.name}</option>)}</select></label>
       <label className="edit-field">Data do pedido<input type="datetime-local" required value={orderDate} onChange={event => setOrderDate(event.target.value)}/></label>
       <h3>Itens do pedido</h3>{items.map((item, index) => <fieldset className="order-item-editor" key={item.key}><legend>Item {index + 1}</legend>
         <label className="edit-field">Produto do item {index + 1}<select required value={item.productId} onChange={event => { const product = available.find(p => p.id === Number(event.target.value)); update(item.key, { productId: event.target.value, unitPrice: String(product?.basePrice ?? '') }) }}>
-          <option value="">Selecione um produto com saldo</option>{available.map(product => <option key={product.id} value={product.id} disabled={items.some(other => other.key !== item.key && Number(other.productId) === product.id)}>{product.name} · {product.availableQuantity} un.</option>)}</select></label>
-        <div className="order-item-numbers"><label className="edit-field">Quantidade do item {index + 1}<input required type="number" min="1" step="1" max={available.find(p => p.id === Number(item.productId))?.availableQuantity} value={item.quantity} onChange={event => update(item.key, { quantity: event.target.value })}/></label>
+          <option value="">Selecione um produto</option>{available.map(product => <option key={product.id} value={product.id} disabled={items.some(other => other.key !== item.key && Number(other.productId) === product.id)}>{product.name} · {product.availableQuantity} un. disponíveis</option>)}</select></label>
+        <div className="order-item-numbers"><label className="edit-field">Quantidade do item {index + 1}<input required type="number" min="1" step="1" value={item.quantity} onChange={event => update(item.key, { quantity: event.target.value })}/></label>
           <label className="edit-field">Preço unitário do item {index + 1}<input required type="number" min="0" step="0.01" value={item.unitPrice} onChange={event => update(item.key, { unitPrice: event.target.value })}/></label></div>
         <button className="row-adjust" type="button" disabled={items.length === 1} aria-label={`Remover item ${index + 1}`} onClick={() => setItems(current => current.filter(row => row.key !== item.key))}><Trash2 size={14}/> Remover item</button>
       </fieldset>)}
