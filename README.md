@@ -345,7 +345,7 @@ Os testes ficam em `frontend/tests` e utilizam APIs simuladas. O build verifica 
 
 O workflow [StockSync CI](.github/workflows/ci.yml) executa a cada push e em pull requests destinados à `main`. Também pode ser iniciado manualmente pela aba **Actions** do repositório.
 
-O pipeline prepara o Java 17, executa `verify`, disponibiliza os relatórios de testes e cobertura por sete dias e verifica a construção da imagem Docker. Os testes de integração utilizam bancos temporários criados pelo Testcontainers. O workflow não publica imagens nem realiza deploy. Atualmente, os testes e o build do frontend são executados separadamente pelos comandos acima.
+O pipeline executa dois jobs independentes: o backend prepara Java 17, executa `verify`, disponibiliza os relatórios de testes e cobertura por sete dias e verifica a construção da imagem Docker; o frontend prepara Node.js 22, instala as dependências com `npm ci`, executa `npm test` e verifica os tipos e o build com `npm run build`. Os testes de integração utilizam bancos temporários criados pelo Testcontainers. O workflow não publica imagens nem realiza deploy.
 
 O badge no início deste README mostra o resultado do CI na branch `main` após a execução no GitHub.
 
