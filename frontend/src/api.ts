@@ -1,4 +1,4 @@
-import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent, PublicationOptions, PublicationRequest, Order, OrderRequest, User } from './types'
+import type { ChannelType, DemoMarketplaceListing, IntegrationCredential, ListingStatus, LoginResponse, MarketplaceListing, Page, Product, SalesChannel, StockMovement, SyncEvent, PublicationOptions, PublicationRequest, Order, OrderRequest, User, SyncEventFilters } from './types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 const TOKEN_KEY = 'stocksync.accessToken'
@@ -80,6 +80,13 @@ export function getLoginError(error: unknown) {
 }
 
 export const api = {
+  syncEvents: (filters: SyncEventFilters, page = 0) => {
+    const params = new URLSearchParams({ page: String(page), size: '20' })
+    params.append('sort', 'timestamp,desc')
+    params.append('sort', 'id,desc')
+    Object.entries(filters).forEach(([key, value]) => { if (value?.trim()) params.set(key, value.trim()) })
+    return request<Page<SyncEvent>>(`/sync-events?${params}`)
+  },
   orders: (page = 0) => request<Page<Order>>(`/orders?page=${page}&size=10&sort=id,desc`),
   order: (id: number) => request<Order>(`/orders/${id}`),
   createOrder: (order: OrderRequest) => request<Order>('/orders', { method: 'POST', body: JSON.stringify(order) }),

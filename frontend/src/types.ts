@@ -60,6 +60,15 @@ export type SyncEvent = {
   attempts: number
 }
 
+export type SyncEventFilters = {
+  status?: '' | 'PENDING' | 'SUCCESS' | 'FAILURE'
+  productId?: string
+  salesChannelId?: string
+  orderId?: string
+  externalOrderId?: string
+  scope?: '' | 'PRODUCT' | 'ORDER'
+}
+
 export type ChannelType = 'MERCADO_LIVRE' | 'SHOPEE' | 'OTHER'
 export type SalesChannel = {
   id: number

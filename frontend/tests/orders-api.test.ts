@@ -9,6 +9,16 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Orders HTTP contracts', () => {
+  it('encodes sync event filters safely and keeps stable pagination sorting', async () => {
+    await api.syncEvents({ status: 'FAILURE', productId: '', salesChannelId: '2', externalOrderId: ' EXT&21 ', scope: 'ORDER' }, 1)
+    const url = new URL(fetchMock.mock.calls[0][0], 'https://example.com')
+    expect(url.pathname).toBe('/api/sync-events')
+    expect(url.searchParams.get('externalOrderId')).toBe('EXT&21')
+    expect(url.searchParams.get('page')).toBe('1')
+    expect(url.searchParams.get('size')).toBe('20')
+    expect(url.searchParams.has('productId')).toBe(false)
+    expect(url.searchParams.getAll('sort')).toEqual(['timestamp,desc', 'id,desc'])
+  })
   it('sends the page and supported sort field to the list endpoint', async () => {
     await api.orders(2)
     expect(fetchMock.mock.calls[0][0]).toBe('/api/orders?page=2&size=10&sort=id,desc')

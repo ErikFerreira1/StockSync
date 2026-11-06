@@ -319,3 +319,9 @@ td{height:54px;font-size:13px}
 .order-sync-failures { margin-top: 18px; }
 .orders-dialog .connection-help { line-height: 1.6; }
 @media (max-width: 600px) { .orders-pagination { align-items: flex-start; flex-direction: column; } .order-item-numbers { align-items: stretch; flex-direction: column; gap: 0; } .orders-dialog { padding: 20px 16px; } .orders-dialog .review-actions { flex-wrap: wrap; } .orders-card .review-actions > button { flex: 1; } }
+.sync-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 16px; margin-bottom: 24px; padding: 16px; border: 1px solid #e1e7e7; border-radius: 4px; background: #fafcfc; }
+.sync-filters .edit-field { min-width: 0; font-size: 13px; }
+.sync-filters input, .sync-filters select { width: 100%; font-size: 13px; }
+.sync-filters .review-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.sync-event-detail { min-width: 220px; max-width: 380px; white-space: normal; line-height: 1.5; }
+@media (max-width: 700px) { .sync-filters { grid-template-columns: 1fr; padding: 12px; } }
