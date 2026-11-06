@@ -1,0 +1,286 @@
+{
+  "info": {
+    "name": "StockSync Demo",
+    "description": "Fluxo principal do StockSync no modo demo: login, consulta de estoque, movimentação manual, pausa, reativação e auditoria.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "productId",
+      "value": "1"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "item": [
+        {
+          "name": "Login demo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login realizado com sucesso', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.environment.set('accessToken', response.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{demoUsername}}\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Produtos e estoque",
+      "item": [
+        {
+          "name": "Listar produtos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Produtos consultados', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const content = pm.response.json().content;",
+                  "if (content && content.length > 0) {",
+                  "    pm.environment.set('productId', content[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Produtos abaixo do estoque mínimo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/inventory/below-minimum",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "below-minimum"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar saída manual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 1,\n  \"type\": \"MANUAL_DECREASE\",\n  \"note\": \"Teste pelo Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock-movement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock-movement"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultar histórico de movimentações",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stock-movement/product/{{productId}}?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock-movement",
+                "product",
+                "{{productId}}"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Marketplace simulado",
+      "item": [
+        {
+          "name": "Listar anúncios simulados",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/demo/marketplace-listings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "demo",
+                "marketplace-listings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pausar anúncio pelo produto",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "{{productId}}",
+                "deactivate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar anúncio pelo produto",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "{{productId}}",
+                "activate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Auditoria",
+      "item": [
+        {
+          "name": "Consultar eventos de sincronização",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sync-events/product/{{productId}}?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sync-events",
+                "product",
+                "{{productId}}"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultar sincronizações com falha",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sync-events/failed?size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sync-events",
+                "failed"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

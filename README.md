@@ -50,6 +50,8 @@ Abra o [Swagger UI](http://localhost:8080/swagger-ui.html), faça login em `POST
 
 A demonstração já prepara dois produtos e anúncios simulados. Consulte o catálogo, registre uma saída e acompanhe a sincronização — sem conta do Mercado Livre ou configuração de OAuth. O roteiro completo está na seção expansível **Modo demo** abaixo.
 
+Também é possível importar a [collection do Postman](docs/postman/StockSync-Demo.postman_collection.json) e o [ambiente local](docs/postman/StockSync-Local.postman_environment.json). Selecione o ambiente no Postman e execute as requisições na ordem das pastas: o login salva o token automaticamente e a consulta de produtos salva o primeiro ID encontrado.
+
 ## Próximas evoluções
 
 - **Outros marketplaces:** novos adaptadores para ampliar a gestão centralizada entre plataformas.
