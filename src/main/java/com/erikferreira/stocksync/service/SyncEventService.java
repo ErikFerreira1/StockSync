@@ -2,6 +2,8 @@ package com.erikferreira.stocksync.service;
 
 import com.erikferreira.stocksync.dto.syncEvent.SyncEventInsertDTO;
 import com.erikferreira.stocksync.dto.syncEvent.SyncEventResponseDTO;
+import com.erikferreira.stocksync.dto.syncEvent.SyncEventFilterDTO;
+import jakarta.persistence.criteria.Predicate;
 import com.erikferreira.stocksync.entity.Order;
 import com.erikferreira.stocksync.entity.Product;
 import com.erikferreira.stocksync.entity.SalesChannel;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Instant;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,24 @@ public class SyncEventService {
     private final ProductService productService;
     private final SalesChannelService salesChannelService;
     private final OrderService orderService;
+
+    @Transactional(readOnly = true)
+    public Page<SyncEventResponseDTO> search(@Valid SyncEventFilterDTO filter, Pageable pageable) {
+        return repository.findAll((root, query, builder) -> {
+            var conditions = new ArrayList<Predicate>();
+            if (filter.status() != null) conditions.add(builder.equal(root.get("status"), filter.status()));
+            if (filter.productId() != null) conditions.add(builder.equal(root.get("product").get("id"), filter.productId()));
+            if (filter.salesChannelId() != null) conditions.add(builder.equal(root.get("salesChannel").get("id"), filter.salesChannelId()));
+            if (filter.orderId() != null) conditions.add(builder.equal(root.get("order").get("id"), filter.orderId()));
+            if (filter.externalOrderId() != null && !filter.externalOrderId().isBlank()) {
+                conditions.add(builder.equal(root.get("externalOrderId"), filter.externalOrderId().trim()));
+            }
+            if ("PRODUCT".equals(filter.scope())) conditions.add(builder.isNotNull(root.get("product")));
+            if ("ORDER".equals(filter.scope())) conditions.add(builder.or(
+                    builder.isNotNull(root.get("order")), builder.isNotNull(root.get("externalOrderId"))));
+            return builder.and(conditions.toArray(Predicate[]::new));
+        }, pageable).map(this::toResponseDTO);
+    }
 
     @Transactional(readOnly = true)
     public Page<SyncEventResponseDTO> findHistoryByProduct(Long productId, Pageable pageable) {

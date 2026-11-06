@@ -227,7 +227,8 @@ class ControllerContractTest {
         mvc.perform(post("/sync-events").contentType("application/json").content("""
                         {"productId":1,"salesChannelId":2,"status":"SUCCESS"}
                         """))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string("Allow", containsString("GET")));
         verify(syncEventService, never()).registerEvent(any());
     }
 
