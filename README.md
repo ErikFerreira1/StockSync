@@ -201,7 +201,9 @@ Em um banco novo, os produtos normalmente recebem os IDs `1` e `2`. Utilize semp
 
 - Os anúncios simulados ficam em memória; produtos, pedidos, movimentações e eventos são armazenados no PostgreSQL.
 - A simulação não envia requisições nem altera anúncios reais no Mercado Livre.
-- A importação externa de pedidos retorna uma lista vazia no adaptador demo; ele não gera vendas fictícias automaticamente.
+- Para simular uma venda na interface, acesse **Pedidos → Simular venda**, selecione o canal, anúncio e quantidade e clique em **Gerar venda simulada**. Em seguida, use **Ir para sincronização → Buscar pedidos no canal**. O pedido entra como `PAID`, com baixa de estoque e sincronização dos anúncios simulados.
+- Pela API, consulte `GET /demo/orders/listings?salesChannelId={id}` e envie `POST /demo/orders` com `salesChannelId`, `listingId` e `quantity`. Depois execute `POST /sales-channels/{id}/orders/synchronize`. A criação da venda simulada não altera o estoque local; a importação faz a baixa. Reimportar o mesmo pedido não duplica a venda nem a baixa.
+- As rotas de simulação existem somente no perfil `demo`; ADMIN e OPERATOR podem gerar vendas. Os pedidos externos simulados ficam em memória e são perdidos ao reiniciar; pedidos já importados permanecem no banco. Falhas de importação ficam disponíveis para nova tentativa enquanto o simulador estiver em execução.
 - Os dois anúncios de exemplo são registrados na inicialização. Cadastrar outro vínculo local não cria um anúncio adicional no simulador.
 - Ao reiniciar a aplicação, a conta demo e os dados dos produtos e anúncios de exemplo são restaurados. Isso não apaga todo o histórico nem os demais registros criados durante os testes.
 - As rotas de usuários, credenciais e OAuth não aparecem na documentação do perfil demo; a conta demo não possui acesso administrativo.

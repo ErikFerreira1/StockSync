@@ -7,7 +7,7 @@ import type { Order, Page, Product, SalesChannel } from '../src/types'
 
 vi.mock('../src/api', async () => {
   const actual = await vi.importActual<typeof import('../src/api')>('../src/api')
-  return { ...actual, api: { ...actual.api, orders: vi.fn(), order: vi.fn(), createOrder: vi.fn(), cancelOrder: vi.fn(), confirmOrderPayment: vi.fn(), synchronizeOrders: vi.fn(), failedSyncs: vi.fn() } }
+  return { ...actual, api: { ...actual.api, orders: vi.fn(), order: vi.fn(), createOrder: vi.fn(), cancelOrder: vi.fn(), confirmOrderPayment: vi.fn(), synchronizeOrders: vi.fn(), failedSyncs: vi.fn(), demoOrderListings: vi.fn(), simulateDemoSale: vi.fn() } }
 })
 
 const products: Product[] = [
@@ -28,6 +28,8 @@ function props(overrides: Partial<Parameters<typeof OrdersPage>[0]> = {}) {
 }
 
 beforeEach(() => {
+  vi.mocked(api.demoOrderListings).mockReset().mockResolvedValue([{ listingId: 'DEMO-USB', productId: 1, title: 'Cabo USB-C', price: 10, availableQuantity: 4, status: 'ACTIVE', updatedAt: '2026-11-06T12:00:00Z' }])
+  vi.mocked(api.simulateDemoSale).mockReset().mockResolvedValue({ externalOrderId: 'DEMO-ORDER-1' })
   vi.mocked(api.orders).mockReset().mockResolvedValue(page([order]))
   vi.mocked(api.order).mockReset().mockResolvedValue(order)
   vi.mocked(api.createOrder).mockReset().mockResolvedValue(order)
@@ -297,5 +299,57 @@ describe('Order cancellation and import', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('A consulta terminou')
     expect(screen.getByText(/Consulta concluída/)).toBeTruthy()
     expect(screen.queryByText(/Nenhuma falha de pedido encontrada/)).toBeNull()
+  })
+})
+
+
+describe('Demo sale simulation', () => {
+  it.each([{ demoMode: false, role: 'OPERATOR' }, { demoMode: true, role: 'VIEWER' }])('hides simulation outside writable demo mode: %j', async overrides => {
+    render(<OrdersPage {...props(overrides)}/>);
+    await screen.findByText('ML-21')
+    expect(screen.queryByRole('button', { name: 'Simular venda' })).toBeNull()
+  })
+
+  it('queues a paid sale and opens import with the selected channel without importing automatically', async () => {
+    const user = userEvent.setup()
+    render(<OrdersPage {...props({ demoMode: true })}/>);
+    await user.click(await screen.findByRole('button', { name: 'Simular venda' }))
+    await user.selectOptions(screen.getByLabelText('Canal da simulação'), '1')
+    await screen.findByRole('option', { name: /DEMO-USB/ })
+    await user.selectOptions(screen.getByLabelText('Anúncio da simulação'), 'DEMO-USB')
+    fireEvent.change(screen.getByLabelText('Quantidade da simulação'), { target: { value: '2' } })
+    expect(api.simulateDemoSale).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Gerar venda simulada' }))
+    expect(await screen.findByText(/Venda simulada criada: DEMO-ORDER-1/)).toBeTruthy()
+    expect(api.simulateDemoSale).toHaveBeenCalledExactlyOnceWith({ salesChannelId: 1, listingId: 'DEMO-USB', quantity: 2 })
+    expect(api.synchronizeOrders).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Ir para sincronização' }))
+    expect((screen.getByLabelText('Canal de venda') as HTMLSelectElement).value).toBe('1')
+    await user.click(screen.getByRole('button', { name: 'Buscar pedidos no canal' }))
+    await waitFor(() => expect(api.synchronizeOrders).toHaveBeenCalledWith(1))
+  })
+
+  it('shows simulation errors and permits retry without showing success', async () => {
+    vi.mocked(api.simulateDemoSale).mockRejectedValue(new ApiError('Falha de simulação', 409))
+    const user = userEvent.setup()
+    render(<OrdersPage {...props({ demoMode: true })}/>);
+    await user.click(await screen.findByRole('button', { name: 'Simular venda' }))
+    await user.selectOptions(screen.getByLabelText('Canal da simulação'), '1')
+    await screen.findByRole('option', { name: /DEMO-USB/ })
+    await user.selectOptions(screen.getByLabelText('Anúncio da simulação'), 'DEMO-USB')
+    await user.click(screen.getByRole('button', { name: 'Gerar venda simulada' }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.queryByText(/Venda simulada criada/)).toBeNull()
+    expect((screen.getByRole('button', { name: 'Gerar venda simulada' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('handles channels without eligible listings', async () => {
+    vi.mocked(api.demoOrderListings).mockResolvedValue([])
+    const user = userEvent.setup()
+    render(<OrdersPage {...props({ demoMode: true })}/>);
+    await user.click(await screen.findByRole('button', { name: 'Simular venda' }))
+    await user.selectOptions(screen.getByLabelText('Canal da simulação'), '1')
+    expect(await screen.findByText('Nenhum anúncio ativo com saldo neste canal.')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Gerar venda simulada' }) as HTMLButtonElement).disabled).toBe(true)
   })
 })

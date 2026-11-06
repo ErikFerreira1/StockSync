@@ -9,6 +9,16 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Orders HTTP contracts', () => {
+  it('uses demo-only simulation endpoints and preserves the selected channel and quantity', async () => {
+    await api.demoOrderListings(2)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/demo/orders/listings?salesChannelId=2')
+    const input = { salesChannelId: 2, listingId: 'DEMO-USB', quantity: 3 }
+    await api.simulateDemoSale(input)
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/demo/orders')
+    expect(fetchMock.mock.calls[1][1].method).toBe('POST')
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual(input)
+  })
+
   it('uses the explicit payment confirmation endpoint', async () => {
     await api.confirmOrderPayment(21)
     expect(fetchMock.mock.calls[0][0]).toBe('/api/orders/21/confirm-payment')

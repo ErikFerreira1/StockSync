@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Plus, RefreshCw, X, Trash2 } from 'lucide-react'
 import { api, ApiError } from './api'
-import type { Order, OrderRequest, OrderStatus, Page, Product, SalesChannel } from './types'
+import type { DemoMarketplaceListing, Order, OrderRequest, OrderStatus, Page, Product, SalesChannel } from './types'
 
 const statusLabels: Record<OrderStatus, string> = {
   PENDING: 'Pendente', PAID: 'Pago', CANCELED: 'Cancelado', REFUNDED: 'Reembolsado', COMPLETED: 'Concluído',
@@ -44,6 +44,7 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [creating, setCreating] = useState(false)
+  const [simulating, setSimulating] = useState(false)
   const [detail, setDetail] = useState<Order | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState('')
@@ -140,6 +141,7 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
       <div className="domain-card-head"><div><h2>Pedidos de venda</h2><p className="muted">Acompanhe os itens vendidos e seus efeitos no estoque.</p></div>
         <div className="review-actions"><button className="filter-button" onClick={reload} disabled={loading || synchronizing}><RefreshCw size={15}/> Atualizar pedidos</button>
           {writable && <><button className="filter-button" onClick={() => { setSyncDialog(true); setSyncError(''); setSyncNotice(''); setShowSyncFailures(false) }} disabled={!channels.some(c => c.active && c.type === 'MERCADO_LIVRE')}><RefreshCw size={15}/> Sincronizar pedidos</button>
+            {demoMode && <button className="filter-button" onClick={() => setSimulating(true)} disabled={!channels.some(c => c.active && c.type === 'MERCADO_LIVRE')}>Simular venda</button>}
             <button className="primary" onClick={() => { setCreating(true); setNotice('') }} disabled={!products.some(p => p.active) || !channels.some(c => c.active)}><Plus size={15}/> Novo pedido</button></>}
         </div></div>
       {notice && <p className="orders-notice" role="status">{notice}</p>}
@@ -153,6 +155,10 @@ export default function OrdersPage({ products, channels, role, selectedId, onSel
           <div className="orders-pagination"><span>{orders.totalElements} pedidos · Página {page + 1} de {Math.max(1, orders.totalPages)}</span>
             <div><button className="filter-button" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Anterior</button><button className="filter-button" disabled={page + 1 >= orders.totalPages} onClick={() => setPage(value => value + 1)}>Próxima</button></div></div></>}
     </section>
+
+    {simulating && demoMode && writable && <DemoSaleDialog channels={channels} onClose={() => setSimulating(false)} onImport={channelId => {
+      setSimulating(false); setSyncChannelId(String(channelId)); setSyncDialog(true); setSyncError(''); setSyncNotice(''); setShowSyncFailures(false)
+    }}/>}
 
     {creating && <OrderCreateDialog products={products} channels={channels} onClose={() => setCreating(false)} onCreated={order => {
       setCreating(false); setPage(0); reload(); setNotice('Pedido pendente cadastrado, sem baixar ou reservar estoque.'); onStockChanged(); onSelect(order.id)
@@ -252,5 +258,55 @@ function OrderCreateDialog({ products, channels, onClose, onCreated }: {
       <button type="button" className="filter-button" disabled={items.length >= available.length} onClick={() => setItems(current => [...current, { key: nextKey.current++, productId: '', quantity: '1', unitPrice: '' }])}><Plus size={15}/> Adicionar item</button>
       <p className="order-total">Total <b>{money(subtotal)}</b></p><div className="review-actions"><button type="button" className="filter-button" onClick={onClose}>Cancelar</button><button className="primary">Revisar pedido</button></div>
     </form>}
+  </section></div>
+}
+
+function DemoSaleDialog({ channels, onClose, onImport }: {
+  channels: SalesChannel[]; onClose: () => void; onImport: (channelId: number) => void
+}) {
+  const [channelId, setChannelId] = useState('')
+  const [listingId, setListingId] = useState('')
+  const [quantity, setQuantity] = useState('1')
+  const [listings, setListings] = useState<DemoMarketplaceListing[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [created, setCreated] = useState('')
+  useEffect(() => {
+    let current = true
+    setListings([]); setListingId(''); setError('')
+    if (!channelId) { setLoading(false); return }
+    setLoading(true)
+    api.demoOrderListings(Number(channelId)).then(result => { if (current) setListings(result) })
+      .catch(cause => { if (current) setError(message(cause)) })
+      .finally(() => { if (current) setLoading(false) })
+    return () => { current = false }
+  }, [channelId])
+  const listing = listings.find(item => item.listingId === listingId)
+  async function simulate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (saving || !listing || !Number.isInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > listing.availableQuantity) return
+    setSaving(true); setError('')
+    try {
+      const result = await api.simulateDemoSale({ salesChannelId: Number(channelId), listingId, quantity: Number(quantity) })
+      setCreated(result.externalOrderId)
+    } catch (cause) { setError(message(cause)) }
+    finally { setSaving(false) }
+  }
+  return <div className="overlay"><section className="dialog product-edit-dialog orders-dialog" role="dialog" aria-modal="true" aria-labelledby="demo-sale-title">
+    <div className="review-top"><h2 id="demo-sale-title">Simular venda</h2><button className="close" aria-label="Fechar simulação" disabled={saving} onClick={onClose}><X size={19}/></button></div>
+    <p className="connection-help">Gere um pedido pago no marketplace simulado. Depois, sincronize os pedidos para importá-lo e baixar o estoque do ambiente demo. Não cria vendas na conta real do Mercado Livre.</p>
+    {error && <p className="form-error" role="alert">{error}</p>}
+    {created ? <><p className="orders-notice" role="status">Venda simulada criada: {created}. O estoque local será baixado na importação.</p>
+      <div className="review-actions"><button className="filter-button" onClick={onClose}>Fechar</button><button className="primary" onClick={() => onImport(Number(channelId))}>Ir para sincronização</button></div></>
+      : <form onSubmit={simulate}>
+        <label className="edit-field">Canal da simulação<select required disabled={saving} value={channelId} onChange={event => setChannelId(event.target.value)}><option value="">Selecione o canal</option>{channels.filter(c => c.active && c.type === 'MERCADO_LIVRE').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+        {loading && <p role="status">Carregando anúncios…</p>}
+        {channelId && !loading && !error && !listings.length && <p>Nenhum anúncio ativo com saldo neste canal.</p>}
+        <label className="edit-field">Anúncio da simulação<select required disabled={loading || saving} value={listingId} onChange={event => { setListingId(event.target.value); setQuantity('1') }}><option value="">Selecione o anúncio</option>{listings.map(item => <option key={item.listingId} value={item.listingId}>{item.title} · {item.listingId} · {item.availableQuantity} un.</option>)}</select></label>
+        <label className="edit-field">Quantidade da simulação<input required type="number" min="1" max={listing?.availableQuantity} step="1" disabled={saving} value={quantity} onChange={event => setQuantity(event.target.value)}/></label>
+        {listing && <p>Total: {money(listing.price * Number(quantity || 0))}</p>}
+        <div className="review-actions"><button type="button" className="filter-button" disabled={saving} onClick={onClose}>Cancelar</button><button className="primary" disabled={saving || loading || !listing}>{saving ? 'Gerando…' : 'Gerar venda simulada'}</button></div>
+      </form>}
   </section></div>
 }

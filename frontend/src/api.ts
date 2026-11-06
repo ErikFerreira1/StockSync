@@ -134,6 +134,8 @@ export const api = {
   failedSyncs: () => request<Page<SyncEvent>>('/sync-events/failed?size=10&sort=timestamp,desc'),
   productSyncs: (id: number) => request<Page<SyncEvent>>(`/sync-events/product/${id}?size=10&sort=timestamp,desc`),
   demoMarketplaceListings: () => request<DemoMarketplaceListing[]>('/demo/marketplace-listings'),
+  demoOrderListings: (channelId: number) => request<DemoMarketplaceListing[]>(`/demo/orders/listings?salesChannelId=${channelId}`),
+  simulateDemoSale: (input: { salesChannelId: number; listingId: string; quantity: number }) => request<{ externalOrderId: string }>('/demo/orders', { method: 'POST', body: JSON.stringify(input) }),
   moveStock: (productId: number, quantity: number, type: 'MANUAL_INCREASE' | 'MANUAL_DECREASE', note: string) =>
     request<StockMovement>('/stock-movement', {
       method: 'POST',
