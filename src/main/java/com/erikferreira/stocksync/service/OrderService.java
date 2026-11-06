@@ -28,6 +28,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Comparator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -91,23 +92,30 @@ public class OrderService {
 
             Product product = productService.getProductEntityById(productId);
 
-            StockMovementInsertDTO stockMovementInsertDTO = new StockMovementInsertDTO(
-                    productId,
-                    quantity,
-                    MovementType.SALE,
-                    OriginType.ORDER,
-                    order.getId(),
-                    "Sale from order " + order.getExternalOrderId());
-
-            OrderItemResponseDTO orderItem = createOrderItem(product, order, quantity, unitPrice);
-
-            stockMovementService.registerMovement(stockMovementInsertDTO);
+            createOrderItem(product, order, quantity, unitPrice);
         }
         Order savedOrder = repository.findById(order.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + order.getId()));
 
 
         return toResponse(savedOrder);
+    }
+
+    @Transactional
+    public OrderResponseDTO confirmPayment(Long orderId) {
+        Order order = repository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + orderId));
+        if (order.getStatus() == OrderStatus.PAID) return toResponse(order);
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new InvalidOrderStatusException("Payment can only be confirmed for pending orders");
+        }
+        if (!order.isStockDeducted()) {
+            registerOrderMovements(order, MovementType.SALE, "Payment confirmed for order ");
+            order.setStockDeducted(true);
+        }
+        order.setStatus(OrderStatus.PAID);
+        repository.save(order);
+        return toResponse(order);
     }
 
     @Transactional
@@ -121,25 +129,33 @@ public class OrderService {
 
         verifyOrderStatus(order);
 
+        if (order.isStockDeducted()) {
+            registerOrderMovements(order, MovementType.CANCELLATION, "Cancellation from order ");
+            order.setStockDeducted(false);
+        }
         order.setStatus(OrderStatus.CANCELED);
         repository.save(order);
+        return toResponse(order);
+    }
 
-        for (OrderItem item : order.getItems()) {
+    private void registerOrderMovements(Order order, MovementType type, String notePrefix) {
+        // Consistent inventory lock order avoids deadlocks across multi-product payments.
+        for (OrderItem item : order.getItems().stream()
+                .sorted(Comparator.comparing(item -> item.getProduct().getId())).toList()) {
             Long productId = item.getProduct().getId();
             Integer quantity = item.getQuantity();
 
             StockMovementInsertDTO stockMovementInsertDTO = new StockMovementInsertDTO(
                     productId,
                     quantity,
-                    MovementType.CANCELLATION,
+                    type,
                     OriginType.ORDER,
                     order.getId(),
-                    "Cancellation from order " + order.getExternalOrderId());
+                    notePrefix + order.getExternalOrderId());
 
             stockMovementService.registerMovement(stockMovementInsertDTO);
         }
 
-        return toResponse(order);
     }
 
     // helpers
@@ -181,7 +197,8 @@ public class OrderService {
                 order.getExternalOrderId(),
                 order.getOrderDate(),
                 order.getStatus(),
-                items
+                items,
+                order.isStockDeducted()
         );
     }
 

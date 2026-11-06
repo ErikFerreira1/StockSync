@@ -95,7 +95,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void insertShouldCreateItemsAndRegisterSaleMovement() {
+    void insertShouldCreatePendingItemsWithoutStockMovement() {
         OrderInsertDTO dto = new OrderInsertDTO(
                 "ORDER-1", 2L, order.getOrderDate(),
                 List.of(new OrderItemInsertDTO(1L, 2, new BigDecimal("10.00"))));
@@ -113,10 +113,8 @@ class OrderServiceTest {
 
         assertThat(result.id()).isEqualTo(3L);
         assertThat(result.status()).isEqualTo(OrderStatus.PENDING);
-        ArgumentCaptor<StockMovementInsertDTO> movementCaptor = ArgumentCaptor.forClass(StockMovementInsertDTO.class);
-        verify(stockMovementService).registerMovement(movementCaptor.capture());
-        assertThat(movementCaptor.getValue().type()).isEqualTo(MovementType.SALE);
-        assertThat(movementCaptor.getValue().originId()).isEqualTo(3L);
+        assertThat(result.stockDeducted()).isFalse();
+        verify(stockMovementService, never()).registerMovement(any());
     }
 
     @Test
@@ -128,6 +126,8 @@ class OrderServiceTest {
 
     @Test
     void cancelOrderShouldSetCanceledAndRegisterMovements() {
+        order.setStatus(OrderStatus.PAID);
+        order.setStockDeducted(true);
         when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
 
         var result = service.cancelOrder(3L);
@@ -137,6 +137,45 @@ class OrderServiceTest {
         ArgumentCaptor<StockMovementInsertDTO> captor = ArgumentCaptor.forClass(StockMovementInsertDTO.class);
         verify(stockMovementService).registerMovement(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(MovementType.CANCELLATION);
+        assertThat(result.stockDeducted()).isFalse();
+    }
+
+    @Test void cancelPendingOrderShouldNotRestock() {
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
+        assertThat(service.cancelOrder(3L).status()).isEqualTo(OrderStatus.CANCELED);
+        verify(stockMovementService, never()).registerMovement(any());
+    }
+
+    @Test void paymentShouldDeductStockAndMarkPaid() {
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
+        var result = service.confirmPayment(3L);
+        assertThat(result.status()).isEqualTo(OrderStatus.PAID);
+        assertThat(result.stockDeducted()).isTrue();
+        ArgumentCaptor<StockMovementInsertDTO> captor = ArgumentCaptor.forClass(StockMovementInsertDTO.class);
+        verify(stockMovementService).registerMovement(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(MovementType.SALE);
+        assertThat(captor.getValue().originId()).isEqualTo(3L);
+    }
+
+    @Test void repeatedPaymentShouldNotDeductAgain() {
+        order.setStatus(OrderStatus.PAID); order.setStockDeducted(true);
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
+        assertThat(service.confirmPayment(3L).status()).isEqualTo(OrderStatus.PAID);
+        verify(stockMovementService, never()).registerMovement(any());
+    }
+
+    @Test void legacyPendingDeductionShouldNotBeRepeatedAtPayment() {
+        order.setStockDeducted(true);
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
+        assertThat(service.confirmPayment(3L).status()).isEqualTo(OrderStatus.PAID);
+        verify(stockMovementService, never()).registerMovement(any());
+    }
+
+    @Test void paymentForCanceledOrderShouldBeRejected() {
+        order.setStatus(OrderStatus.CANCELED);
+        when(repository.findByIdForUpdate(3L)).thenReturn(Optional.of(order));
+        assertThatThrownBy(() -> service.confirmPayment(3L)).isInstanceOf(InvalidOrderStatusException.class);
+        verify(stockMovementService, never()).registerMovement(any());
     }
 
     @Test

@@ -48,4 +48,9 @@ public class OrderController {
         return ResponseEntity.ok(service.cancelOrder(id));
     }
 
+    @PatchMapping("/{id}/confirm-payment")
+    public ResponseEntity<OrderResponseDTO> confirmPayment(@PathVariable Long id) {
+        return ResponseEntity.ok(service.confirmPayment(id));
+    }
+
 }

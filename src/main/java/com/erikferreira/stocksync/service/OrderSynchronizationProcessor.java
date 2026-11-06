@@ -6,6 +6,7 @@ import com.erikferreira.stocksync.dto.orderItem.OrderItemInsertDTO;
 import com.erikferreira.stocksync.entity.MarketplaceListing;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderDTO;
 import com.erikferreira.stocksync.integration.dto.ExternalOrderItemDTO;
+import com.erikferreira.stocksync.service.exceptions.InvalidOrderStatusException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,6 +25,10 @@ public class OrderSynchronizationProcessor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processOrder(Long salesChannelId, ExternalOrderDTO externalOrder) {
+        if (!"paid".equalsIgnoreCase(externalOrder.status())) {
+            throw new InvalidOrderStatusException(
+                    "Only paid marketplace orders can be imported");
+        }
         List<ExternalOrderItemDTO> externalItems = externalOrder.items();
         List<OrderItemInsertDTO> orderItems = new ArrayList<>();
 
@@ -46,6 +51,7 @@ public class OrderSynchronizationProcessor {
                 orderItems);
 
         OrderResponseDTO orderResponseDTO =  orderService.insert(orderInsertDTO);
+        orderResponseDTO = orderService.confirmPayment(orderResponseDTO.id());
 
         syncEventService.registerOrderSuccess(
                 salesChannelId,

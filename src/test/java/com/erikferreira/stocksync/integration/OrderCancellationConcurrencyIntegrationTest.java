@@ -83,6 +83,7 @@ class OrderCancellationConcurrencyIntegrationTest extends PostgreSQLIntegrationT
                         )
                 ));
 
+        orderService.confirmPayment(order.id());
         assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(7);
 
         ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_CANCELLATIONS);

@@ -51,7 +51,9 @@ class OrderSynchronizationProcessorTest {
         when(marketplaceListingService.getByListingIdAndSalesChannelId("MLB123", 2L))
                 .thenReturn(listing);
         when(orderService.insert(any(OrderInsertDTO.class))).thenReturn(new OrderResponseDTO(
-                10L, 2L, "EXT-1", orderDate, OrderStatus.PENDING, List.of()));
+                10L, 2L, "EXT-1", orderDate, OrderStatus.PENDING, List.of(), false));
+        when(orderService.confirmPayment(10L)).thenReturn(new OrderResponseDTO(
+                10L, 2L, "EXT-1", orderDate, OrderStatus.PAID, List.of(), true));
 
         processor.processOrder(2L, externalOrder);
 
@@ -64,6 +66,7 @@ class OrderSynchronizationProcessorTest {
             assertThat(item.unitPrice()).isEqualByComparingTo("15.00");
         });
         verify(syncEventService).registerOrderSuccess(2L, 10L, "EXT-1");
+        verify(orderService).confirmPayment(10L);
     }
 
     @Test
@@ -79,5 +82,13 @@ class OrderSynchronizationProcessorTest {
 
         verify(orderService, never()).insert(any());
         verify(syncEventService, never()).registerOrderSuccess(any(), any(), any());
+    }
+
+    @Test void unpaidMarketplaceOrderMustNotBeInsertedOrDeductStock() {
+        var external = new ExternalOrderDTO("UNPAID", Instant.now(), "pending", List.of());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> processor.processOrder(2L, external))
+                .isInstanceOf(com.erikferreira.stocksync.service.exceptions.InvalidOrderStatusException.class);
+        verify(orderService, never()).insert(any());
+        verify(orderService, never()).confirmPayment(any());
     }
 }

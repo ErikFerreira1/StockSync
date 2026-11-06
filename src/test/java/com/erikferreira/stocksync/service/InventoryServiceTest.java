@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
+    @Mock private jakarta.persistence.EntityManager entityManager;
 
     @Mock
     private InventoryRepository repository;

@@ -55,6 +55,12 @@ class CoreWorkflowIntegrationTest extends PostgreSQLIntegrationTest {
             assertThat(item.productId()).isEqualTo(product.id());
             assertThat(item.subtotal()).isEqualByComparingTo("25.00");
         });
+        assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(10);
+        assertThat(created.stockDeducted()).isFalse();
+        var paid = orderService.confirmPayment(created.id());
+        assertThat(paid.status()).isEqualTo(com.erikferreira.stocksync.entity.enums.OrderStatus.PAID);
+        assertThat(paid.stockDeducted()).isTrue();
+        orderService.confirmPayment(created.id());
         assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(8);
         orderService.cancelOrder(created.id());
         orderService.cancelOrder(created.id());
@@ -141,6 +147,9 @@ class CoreWorkflowIntegrationTest extends PostgreSQLIntegrationTest {
         orderSynchronizationService.synchronizeOrders(channel.id());
 
         assertThat(orderRepository.existsBySalesChannelIdAndExternalOrderId(channel.id(), externalOrderId)).isTrue();
+        var imported = orderRepository.findAll().stream().filter(o -> externalOrderId.equals(o.getExternalOrderId())).findFirst().orElseThrow();
+        assertThat(imported.getStatus()).isEqualTo(com.erikferreira.stocksync.entity.enums.OrderStatus.PAID);
+        assertThat(imported.isStockDeducted()).isTrue();
         assertThat(inventoryService.getAvailableQuantity(product.id())).isEqualTo(8);
         assertThat(movementService.findHistoryByProduct(product.id(), PageRequest.of(0, 10)).getContent()).singleElement().satisfies(movement -> assertThat(movement.type()).isEqualTo(MovementType.SALE));
         verify(marketplaceIntegrationPort).updateStock(listingId, 8);

@@ -12,6 +12,7 @@ public record OrderResponseDTO(
         String externalOrderId,
         Instant orderDate,
         OrderStatus status,
-        List<OrderItemResponseDTO> items
+        List<OrderItemResponseDTO> items,
+        boolean stockDeducted
 ) {
 }

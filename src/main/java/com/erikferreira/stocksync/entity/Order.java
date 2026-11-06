@@ -35,6 +35,9 @@ public class Order {
     @Column(nullable = false, length = 50)
     private OrderStatus status;
 
+    @Column(name = "stock_deducted", nullable = false)
+    private boolean stockDeducted;
+
     @Builder.Default
     @OneToMany(mappedBy = "order")
     private List<OrderItem> items = new ArrayList<>();

@@ -198,10 +198,20 @@ class ControllerContractTest {
     @Test
     void orderControllerShouldCancelOrder() throws Exception {
         when(orderService.cancelOrder(3L)).thenReturn(new OrderResponseDTO(
-                3L, 2L, "EXT-1", Instant.now(), OrderStatus.CANCELED, List.of()));
+                3L, 2L, "EXT-1", Instant.now(), OrderStatus.CANCELED, List.of(), false));
         mvc.perform(patch("/orders/3/cancel"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELED"));
+    }
+
+    @Test
+    void orderControllerShouldConfirmPayment() throws Exception {
+        when(orderService.confirmPayment(3L)).thenReturn(new OrderResponseDTO(
+                3L, 2L, "EXT-1", Instant.now(), OrderStatus.PAID, List.of(), true));
+        mvc.perform(patch("/orders/3/confirm-payment"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.stockDeducted").value(true));
+        verify(orderService).confirmPayment(3L);
     }
 
     @Test

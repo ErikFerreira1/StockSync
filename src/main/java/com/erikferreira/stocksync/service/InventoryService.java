@@ -14,6 +14,8 @@ import com.erikferreira.stocksync.repository.StockMovementRepository;
 import com.erikferreira.stocksync.service.exceptions.InsufficientStockException;
 import com.erikferreira.stocksync.service.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -33,6 +35,7 @@ public class InventoryService {
     private final InventoryRepository repository;
     private final StockMovementRepository stockMovementRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public InventoryResponseDTO findByProduct(Long productId) {
@@ -146,8 +149,13 @@ public class InventoryService {
     }
 
     private Inventory findInventoryForUpdateOrThrow(Long productId) {
-        return repository.findByProductIdForUpdate(productId)
+        entityManager.flush();
+        Inventory inventory = repository.findByProductIdForUpdate(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory not found for product: " + productId));
+        // The product relation may have loaded this entity before waiting for the inventory lock.
+        // Refresh under the lock to use the latest committed balance, not the persistence-context cache.
+        entityManager.refresh(inventory, LockModeType.PESSIMISTIC_WRITE);
+        return inventory;
     }
 
     private void applyNewQuantity(Inventory inventory, int newQuantity, String operation) {
