@@ -4,9 +4,9 @@
 
 **Gestão de estoque com sincronização de anúncios no Mercado Livre.**
 
-Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, estoque e pedidos, atualiza anúncios vinculados e registra o resultado de cada sincronização. A versão atual oferece API REST, documentação interativa e um modo demo com marketplace simulado.
+Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, estoque e pedidos, atualiza anúncios vinculados e registra o resultado de cada sincronização. A versão atual oferece API REST, interface web em React, documentação interativa e um modo demo com marketplace simulado.
 
-**Tecnologias principais:** Java 17 · Spring Boot · PostgreSQL · Spring Security/JWT · Docker · JUnit · Testcontainers
+**Tecnologias principais:** Java 17 · Spring Boot · PostgreSQL · Spring Security/JWT · Docker · JUnit · Testcontainers · React · TypeScript
 
 ## Visão geral
 
@@ -14,10 +14,10 @@ Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, est
 | --- | --- |
 | Produtos e estoque | Cadastro de produtos, entradas e saídas, estoque mínimo e histórico de movimentações. |
 | Pedidos | Registro pendente, confirmação de pagamento com baixa de estoque, importação do Mercado Livre e cancelamento. |
-| Canais e anúncios | Gestão de canais, vínculo de anúncios e sincronização de quantidade, pausa e reativação. |
+| Canais e anúncios | Gestão de canais, publicação no Mercado Livre, vínculo de anúncios e sincronização de quantidade, pausa e reativação. |
 | Integração | OAuth com Mercado Livre, renovação de tokens e credenciais criptografadas. |
 | Controle de acesso | Perfis de administrador, operador e consulta, com autenticação JWT. |
-| Rastreabilidade | Histórico de sincronizações bem-sucedidas e falhas por produto. |
+| Rastreabilidade | Histórico de sincronizações de produtos e pedidos, com filtros e paginação. |
 
 ### Como funciona
 
@@ -52,12 +52,32 @@ A demonstração já prepara dois produtos e anúncios simulados. Consulte o cat
 
 Também é possível importar a [collection do Postman](docs/postman/StockSync-Demo.postman_collection.json) e o [ambiente local](docs/postman/StockSync-Local.postman_environment.json). Selecione o ambiente no Postman e execute as requisições na ordem das pastas: o login salva o token automaticamente e a consulta de produtos salva o primeiro ID encontrado.
 
-## Próximas evoluções
+### Interface web
 
-- **Outros marketplaces:** novos adaptadores para ampliar a gestão centralizada entre plataformas.
-- **Interface web:** telas para acompanhar produtos, estoque, pedidos, anúncios e sincronizações.
+Com o backend em execução, utilize Node.js 22 e abra outro terminal:
 
-Esses recursos estão planejados. Hoje, o projeto é acessado pela API/Swagger, com demo online e execução local disponíveis. A integração real disponível é com o Mercado Livre.
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Abra [http://localhost:5173](http://localhost:5173) e entre com a conta demo. A interface oferece estoque, movimentações, canais, anúncios, pedidos e histórico de sincronizações. No perfil demo, também exibe o Mercado Livre simulado e a opção **Simular venda**.
+
+O servidor Vite encaminha as requisições para a API em `http://localhost:8080`. Para usar outra porta, copie `frontend/.env.example` para `frontend/.env.local`, ajuste `VITE_BACKEND_URL` e reinicie o Vite. O Compose inicia apenas o backend e o banco; a interface é executada separadamente.
+
+### Demonstração rápida pela interface
+
+1. Abra **Estoque** e confira as 12 unidades iniciais do cabo USB-C em uma demo recém-iniciada.
+2. Em **Pedidos → Simular venda**, escolha o canal simulado, o anúncio do cabo e 2 unidades.
+3. Clique em **Gerar venda simulada → Ir para sincronização → Buscar pedidos no canal**.
+4. Feche a consulta e abra o pedido importado: ele estará como **Pago**, com 2 unidades e total de R$ 50,00.
+5. Confira o saldo de 10 unidades em **Estoque** e **Mercado Livre simulado** e consulte os registros em **Sincronizações**.
+6. Repita a sincronização: o pedido e a baixa não são duplicados.
+
+### Escopo do projeto
+
+O foco é demonstrar regras de estoque, integração externa, transações, concorrência e testes em um projeto de portfólio backend, com uma interface para experimentar os fluxos. A integração real disponível é com o Mercado Livre. Reembolsos, pagamentos processados pelo sistema e outros marketplaces ficam fora do escopo atual.
 
 ---
 
@@ -81,6 +101,7 @@ Expanda apenas o assunto que deseja explorar.
 
 - Cadastro, edição, ativação e desativação de canais de venda.
 - Vínculo entre um produto local e um anúncio do marketplace, utilizando o identificador externo do anúncio.
+- Publicação de anúncios sem variações no Mercado Livre, com consulta de categoria, validação e revisão antes de publicar. Veja o [guia de publicação](docs/MARKETPLACE_PUBLICATION.md).
 - Sincronização de quantidade para os anúncios ativos elegíveis após a confirmação da alteração no banco.
 - Pausa dos anúncios ativos vinculados a canais ativos quando o produto é desativado.
 - Reativação dos anúncios pausados pela desativação do produto, enviando a quantidade local atual.
@@ -106,7 +127,7 @@ Veja os detalhes da interface e do contrato em [Pedidos na interface web](docs/O
 - Autorização de contas do Mercado Livre pelo fluxo OAuth.
 - Renovação de tokens de acesso e armazenamento criptografado das credenciais de integração.
 - Registro de eventos de sincronização com sucesso ou falha.
-- Consulta do histórico por produto e dos eventos que falharam.
+- Consulta paginada do histórico com filtros por status, produto, canal e pedido. Veja o [guia de sincronizações](docs/SYNC_EVENTS_WEB.md).
 
 ### Autenticação e permissões
 
@@ -204,7 +225,7 @@ Em um banco novo, os produtos normalmente recebem os IDs `1` e `2`. Utilize semp
 - Para simular uma venda na interface, acesse **Pedidos → Simular venda**, selecione o canal, anúncio e quantidade e clique em **Gerar venda simulada**. Em seguida, use **Ir para sincronização → Buscar pedidos no canal**. O pedido entra como `PAID`, com baixa de estoque e sincronização dos anúncios simulados.
 - Pela API, consulte `GET /demo/orders/listings?salesChannelId={id}` e envie `POST /demo/orders` com `salesChannelId`, `listingId` e `quantity`. Depois execute `POST /sales-channels/{id}/orders/synchronize`. A criação da venda simulada não altera o estoque local; a importação faz a baixa. Reimportar o mesmo pedido não duplica a venda nem a baixa.
 - As rotas de simulação existem somente no perfil `demo`; ADMIN e OPERATOR podem gerar vendas. Os pedidos externos simulados ficam em memória e são perdidos ao reiniciar; pedidos já importados permanecem no banco. Falhas de importação ficam disponíveis para nova tentativa enquanto o simulador estiver em execução.
-- Os dois anúncios de exemplo são registrados na inicialização. Cadastrar outro vínculo local não cria um anúncio adicional no simulador.
+- Os dois anúncios de exemplo são registrados na inicialização. Novos vínculos locais também são registrados no simulador após a confirmação da transação.
 - Ao reiniciar a aplicação, a conta demo e os dados dos produtos e anúncios de exemplo são restaurados. Isso não apaga todo o histórico nem os demais registros criados durante os testes.
 - As rotas de usuários, credenciais e OAuth não aparecem na documentação do perfil demo; a conta demo não possui acesso administrativo.
 
@@ -285,6 +306,8 @@ As migrações Flyway ficam em `src/main/resources/db/migration`, e os testes em
 | JUnit 5 e Mockito | Testes automatizados e simulação de dependências. |
 | Testcontainers | Testes de integração com PostgreSQL em containers. |
 | JaCoCo | Relatório de cobertura dos testes. |
+| React, TypeScript e Vite | Interface web e servidor de desenvolvimento com proxy para a API. |
+| Vitest e Testing Library | Testes dos componentes e contratos HTTP do frontend. |
 
 </details>
 
@@ -307,11 +330,22 @@ Para executar a verificação e gerar o relatório de cobertura:
 
 O relatório do JaCoCo fica em `target/site/jacoco/index.html`. No Windows, utilize `mvnw.cmd` no lugar de `./mvnw`.
 
+### Testes da interface web
+
+Na pasta `frontend`, com as dependências instaladas:
+
+```bash
+npm test
+npm run build
+```
+
+Os testes ficam em `frontend/tests` e utilizam APIs simuladas. O build verifica TypeScript e gera os arquivos em `frontend/dist`.
+
 ### Integração contínua com GitHub Actions
 
 O workflow [StockSync CI](.github/workflows/ci.yml) executa a cada push e em pull requests destinados à `main`. Também pode ser iniciado manualmente pela aba **Actions** do repositório.
 
-O pipeline prepara o Java 17, executa `verify`, disponibiliza os relatórios de testes e cobertura por sete dias e verifica a construção da imagem Docker. Os testes de integração utilizam bancos temporários criados pelo Testcontainers. O workflow não publica imagens nem realiza deploy.
+O pipeline prepara o Java 17, executa `verify`, disponibiliza os relatórios de testes e cobertura por sete dias e verifica a construção da imagem Docker. Os testes de integração utilizam bancos temporários criados pelo Testcontainers. O workflow não publica imagens nem realiza deploy. Atualmente, os testes e o build do frontend são executados separadamente pelos comandos acima.
 
 O badge no início deste README mostra o resultado do CI na branch `main` após a execução no GitHub.
 
