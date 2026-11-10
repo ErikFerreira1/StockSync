@@ -66,6 +66,12 @@ Abra [http://localhost:5173](http://localhost:5173) e entre com a conta demo. A 
 
 O servidor Vite encaminha as requisições para a API em `http://localhost:8080`. Para usar outra porta, copie `frontend/.env.example` para `frontend/.env.local`, ajuste `VITE_BACKEND_URL` e reinicie o Vite. O Compose inicia apenas o backend e o banco; a interface é executada separadamente.
 
+### Hospedagem da demo em uma VM
+
+O Compose de deploy reúne frontend compilado, API e PostgreSQL no mesmo servidor. Usa um banco dedicado, segredos gerados no servidor e Caddy para servir a interface com HTTPS. O acesso público ao aplicativo passa pelas portas do Caddy.
+
+O [guia de deploy na AWS EC2](docs/EC2_DEPLOY.md) descreve como instalar a demo online. A integração real com o Mercado Livre fica em um ambiente separado.
+
 ### Demonstração rápida pela interface
 
 1. Abra **Estoque** e confira as 12 unidades iniciais do cabo USB-C em uma demo recém-iniciada.

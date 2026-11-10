@@ -1,0 +1,75 @@
+name: stocksync-public
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: stocksync
+      POSTGRES_USER: stocksync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute deploy/configure.sh primeiro}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stocksync -d stocksync"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/stocksync
+      POSTGRES_USER: stocksync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute deploy/configure.sh primeiro}
+      SHOW_SQL: "false"
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Execute deploy/configure.sh primeiro}
+      JWT_SECRET: ${JWT_SECRET:?Execute deploy/configure.sh primeiro}
+      DEMO_USERNAME: demo
+      DEMO_PASSWORD: stocksync-demo
+      BOOTSTRAP_ADMIN_USERNAME: unused
+      BOOTSTRAP_ADMIN_PASSWORD: unused-demo-bootstrap-disabled
+      FRONTEND_URL: ${FRONTEND_URL:?Informe a URL publica no arquivo de deploy}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Informe o dominio no arquivo de deploy}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

@@ -17,6 +17,8 @@ target/
 .env
 .env.local
 .env.*.local
+.env.deploy
+backups/
 
 ### IntelliJ IDEA ###
 .idea
