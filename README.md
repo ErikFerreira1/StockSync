@@ -8,16 +8,17 @@ Projeto de portfólio backend em Java e Spring Boot que centraliza produtos, est
 
 **Tecnologias principais:** Java 17 · Spring Boot · PostgreSQL · Spring Security/JWT · Docker · JUnit · Testcontainers · React · TypeScript
 
-## Visão geral
+## O que você pode fazer na interface
 
-| Área | O que o sistema oferece |
+| Tela | O que você pode fazer |
 | --- | --- |
-| Produtos e estoque | Cadastro de produtos, entradas e saídas, estoque mínimo e histórico de movimentações. |
-| Pedidos | Registro pendente, confirmação de pagamento com baixa de estoque, importação do Mercado Livre e cancelamento. |
-| Canais e anúncios | Gestão de canais, publicação no Mercado Livre, vínculo de anúncios e sincronização de quantidade, pausa e reativação. |
-| Integração | OAuth com Mercado Livre, renovação de tokens e credenciais criptografadas. |
-| Controle de acesso | Perfis de administrador, operador e consulta, com autenticação JWT. |
-| Rastreabilidade | Histórico de sincronizações de produtos e pedidos, com filtros e paginação. |
+| Visão geral | Acompanhar indicadores de estoque e movimentações recentes. As notificações mostram estoque no limite, movimentações e falhas de sincronização. |
+| Estoque e movimentações | Buscar por nome ou SKU, cadastrar e editar produtos, definir o estoque mínimo, ativar ou desativar produtos em lote e registrar entradas e saídas. O detalhe do produto mostra o saldo e o histórico de movimentações. |
+| Canais de venda | Cadastrar, editar, ativar e desativar canais. No modo real, o administrador conecta a conta do Mercado Livre por OAuth. |
+| Anúncios | Vincular um anúncio existente ou, no modo real, publicar um novo anúncio sem variações. O formulário consulta categorias e campos exigidos, valida os dados e mostra uma revisão antes de publicar. |
+| Pedidos | Criar e revisar pedidos com vários itens, consultar detalhes, confirmar pagamentos já recebidos, cancelar no StockSync e buscar pedidos pagos no canal. Na demo, **Simular venda** gera um pedido para testar a importação. |
+| Sincronizações | Consultar o histórico paginado de estoque, status de anúncios e pedidos. Filtrar por resultado, origem, canal, produto ou pedido e abrir pedidos a partir do histórico. |
+| Mercado Livre simulado | Conferir o estoque publicado, preço e status dos anúncios simulados e acompanhar como eles mudam após uma movimentação ou venda. |
 
 ### Como funciona
 
@@ -29,14 +30,13 @@ Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atual
 
 ### Demo online
 
-**[Abrir o Swagger da demo](https://vividness-gratuity-foothold.ngrok-free.dev/swagger-ui.html)** — experimente a API sem instalar o projeto.
+**[Abrir a versão web do StockSync](https://18.227.102.237/)**
 
-1. Se o ngrok exibir uma tela inicial, clique em **Visit Site** para continuar.
-2. Execute `POST /auth/login` com usuário `demo` e senha `stocksync-demo`.
-3. Copie o `accessToken` da resposta e cole em **Authorize**.
-4. Consulte `GET /products` para ver os produtos de exemplo. O roteiro completo de movimentação e sincronização está na seção **Modo demo** abaixo.
+Entre com o usuário `demo` e a senha `stocksync-demo`. Siga o [roteiro pela interface](#demonstração-rápida-pela-interface) para ver como uma venda simulada altera o estoque e o anúncio vinculado.
 
-A demo é compartilhada, usa dados fictícios e simula o Mercado Livre. Os registros de exemplo são restaurados na inicialização. Hospedada em um celular Android com Termux, Java e PostgreSQL, ela pode ficar indisponível durante manutenção ou ao atingir os limites do túnel gratuito. Se estiver offline, execute localmente com Docker.
+A demo compartilhada roda na AWS EC2. Ela usa dados fictícios e simula o Mercado Livre para que você possa experimentar os fluxos sem conectar uma conta. Os registros de exemplo são restaurados na inicialização. Se a demo estiver offline, use a execução local abaixo.
+
+O [Swagger da API](https://18.227.102.237/api/swagger-ui.html) fica disponível para quem quiser consultar os endpoints e fazer requisições com a mesma conta demo.
 
 ### Execução local
 
@@ -116,7 +116,7 @@ O preço-base é um atributo do produto local. A sincronização implementada co
 - Em **Pedidos → detalhes → Confirmar pagamento**, ADMIN e OPERATOR podem registrar um pagamento já recebido. A ação verifica todos os itens, baixa o estoque e marca o pedido como `PAID` na mesma transação. Saldo insuficiente mantém o pedido pendente, sem baixas parciais; repetir a confirmação não desconta novamente.
 - Confirmação disponível também pela API em `PATCH /orders/{id}/confirm-payment`. Ela registra o pagamento localmente, sem efetuar cobrança ou alterar pagamentos no Mercado Livre.
 - Cancelamento de pedidos pendentes ou pagos, com reposição somente quando houver uma baixa ativa. Cancelar um pendente novo não altera o estoque; repetir o cancelamento não devolve quantidades novamente. A ação não cancela a venda no Mercado Livre nem emite reembolso.
-- Importação de pedidos pagos do Mercado Livre, acionada pela API, com criação e confirmação de pagamento na mesma transação. Falta de estoque desfaz a importação daquele pedido.
+- Importação de pedidos pagos do Mercado Livre em **Pedidos → Sincronizar pedidos** ou pela API, com criação e confirmação de pagamento na mesma transação. Falta de estoque desfaz a importação daquele pedido.
 - Compatibilidade com pedidos antigos: a migração V12 identifica as baixas existentes pelo histórico de movimentações, preservando saldos e status. Confirmar um pendente antigo que já teve baixa não desconta o estoque novamente.
 - Proteções contra importação duplicada e cenários de concorrência, verificadas por testes de integração.
 
@@ -361,8 +361,8 @@ Uma **conta de teste do Mercado Livre** também utiliza esse fluxo real: a autor
 1. Crie um arquivo `.env` com base em [.env.example](.env.example).
 2. Configure `SPRING_PROFILES_ACTIVE=default` para utilizar o adaptador real. No Compose, deixar essa variável ausente ou vazia seleciona o perfil `demo`.
 3. Configure o acesso ao PostgreSQL, as credenciais iniciais do administrador, `JWT_SECRET`, `ENCRYPTION_KEY` e `MERCADO_LIVRE_REDIRECT_URI`.
-4. Cadastre o canal de venda e as credenciais de integração pela API com uma conta administrativa.
-5. Inicie a autorização em `GET /mercadolivre/authorize/{salesChannelId}` com autenticação administrativa e conclua o fluxo no navegador, preservando o cookie de estado OAuth.
+4. Com uma conta administrativa, cadastre o canal em **Canais de venda** e abra **Conectar Mercado Livre** para informar as credenciais do aplicativo.
+5. Conclua a autorização no navegador. Pela API, o fluxo pode ser iniciado em `GET /mercadolivre/authorize/{salesChannelId}` com autenticação administrativa e precisa preservar o cookie de estado OAuth.
 
 O endereço de retorno deve corresponder ao callback configurado na aplicação do Mercado Livre e encaminhar para `/mercadolivre/callback`. Cada conta conectada precisa autorizar o acesso.
 
