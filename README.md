@@ -32,9 +32,9 @@ Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atual
 
 **[Abrir a versão web do StockSync](https://18.227.102.237/)**
 
-[![Assistir ao vídeo do StockSync com publicação no Mercado Livre](docs/media/StockSync-tour-capa.png)](docs/media/StockSync-tour.mp4)
+[![Assistir ao vídeo do StockSync com publicação no Mercado Livre](docs/media/StockSync-tour-capa.png)](https://18.227.102.237/media/StockSync-tour.mp4)
 
-[Assistir ao vídeo de demonstração (1min24s)](docs/media/StockSync-tour.mp4). O tour mostra estoque, canais, anúncios, pedidos, pagamentos, cancelamento, sincronizações e alertas, incluindo a publicação de um anúncio na plataforma do Mercado Livre com uma conta de teste.
+[Assistir ao vídeo de demonstração (1min24s)](https://18.227.102.237/media/StockSync-tour.mp4). O tour mostra estoque, canais, anúncios, pedidos, pagamentos, cancelamento, sincronizações e alertas, incluindo a publicação de um anúncio na plataforma do Mercado Livre com uma conta de teste. O [arquivo MP4](docs/media/StockSync-tour.mp4) também está disponível no repositório.
 
 A cena de publicação utiliza o ambiente integrado à API oficial, com autorização OAuth do vendedor. Na demo pública, o Mercado Livre é simulado para permitir testes sem conectar uma conta ou criar anúncios na plataforma.
 
