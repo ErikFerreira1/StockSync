@@ -32,6 +32,12 @@ Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atual
 
 **[Abrir a versão web do StockSync](https://18.227.102.237/)**
 
+[![Assistir ao vídeo do StockSync com publicação no Mercado Livre](docs/media/StockSync-tour-capa.png)](docs/media/StockSync-tour.mp4)
+
+[Assistir ao vídeo de demonstração (1min24s)](docs/media/StockSync-tour.mp4). O tour mostra estoque, canais, anúncios, pedidos, pagamentos, cancelamento, sincronizações e alertas, incluindo a publicação de um anúncio na plataforma do Mercado Livre com uma conta de teste.
+
+A cena de publicação utiliza o ambiente integrado à API oficial, com autorização OAuth do vendedor. Na demo pública, o Mercado Livre é simulado para permitir testes sem conectar uma conta ou criar anúncios na plataforma.
+
 Entre com o usuário `demo` e a senha `stocksync-demo`. Siga o [roteiro pela interface](#demonstração-rápida-pela-interface) para ver como uma venda simulada altera o estoque e o anúncio vinculado.
 
 A demo compartilhada roda na AWS EC2. Ela usa dados fictícios e simula o Mercado Livre para que você possa experimentar os fluxos sem conectar uma conta. Os registros de exemplo são restaurados na inicialização. Se a demo estiver offline, use a execução local abaixo.
