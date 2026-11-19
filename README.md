@@ -34,7 +34,9 @@ Por exemplo: uma saída de duas unidades reduz o saldo de `12` para `10` e atual
 
 [![Assistir ao vídeo do StockSync com publicação no Mercado Livre](docs/media/StockSync-tour-capa.png)](https://18.227.102.237/media/StockSync-tour.mp4)
 
-[Assistir ao vídeo de demonstração (1min24s)](https://18.227.102.237/media/StockSync-tour.mp4). O tour mostra estoque, canais, anúncios, pedidos, pagamentos, cancelamento, sincronizações e alertas, incluindo a publicação de um anúncio na plataforma do Mercado Livre com uma conta de teste. O [arquivo MP4](docs/media/StockSync-tour.mp4) também está disponível no repositório.
+[Assistir ao vídeo de demonstração em 1080p (1min24s)](https://18.227.102.237/media/StockSync-tour.mp4). O tour mostra cadastro de produtos, publicação no Mercado Livre com uma conta de teste, venda simulada, importação de pedidos, estoque sincronizado, pagamentos e cancelamento. O bloco técnico apresenta o fluxo após o commit da transação, código do listener e resultados verificados de testes e CI. O [arquivo MP4](docs/media/StockSync-tour.mp4) também está disponível no repositório.
+
+[Assistir à versão quadrada para LinkedIn (42s)](https://18.227.102.237/media/StockSync-LinkedIn.mp4). A edição curta concentra venda simulada, importação e atualização do estoque. O [MP4 quadrado](docs/media/StockSync-LinkedIn.mp4) está disponível para download.
 
 A cena de publicação utiliza o ambiente integrado à API oficial, com autorização OAuth do vendedor. Na demo pública, o Mercado Livre é simulado para permitir testes sem conectar uma conta ou criar anúncios na plataforma.
 
